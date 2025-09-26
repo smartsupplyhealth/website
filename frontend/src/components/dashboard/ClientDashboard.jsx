@@ -31,7 +31,6 @@ export default function ClientDashboard() {
 
   // ===== Dépenses 30 jours =====
   const [expenses30d, setExpenses30d] = useState([]); // [{date:'YYYY-MM-DD', total}]
-  const [topProducts, setTopProducts] = useState([]); // [{key,name,total,qty,nearThreshold,suggestQty}]
   
   // ===== Auto Order Status =====
   const [autoOrderStatus, setAutoOrderStatus] = useState({
@@ -162,9 +161,8 @@ export default function ClientDashboard() {
           checkAutoOrderLimits(list);
         }
 
-        // Dépenses: histogramme + top produits
+        // Dépenses: histogramme
         buildExpenses30d(list);
-        buildTopProducts(list);
       } catch (e) {
         console.error("Erreur dashboard:", e);
       } finally {
@@ -245,72 +243,6 @@ export default function ClientDashboard() {
     setExpenses30d(Object.keys(base).map((k) => ({ date: k, total: base[k] })));
   }
 
-  /* ----------------------- Dépenses: Top 5 produits (30 jours) ----------------------- */
-  function buildTopProducts(list) {
-    // Agrège seulement les commandes payées des 30 derniers jours
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 30);
-
-    // utilitaire: calcule un montant fiable pour une ligne article
-    const getItemAmount = (it, qty) => {
-      const candidates = [
-        it?.lineTotal,
-        it?.total,
-        it?.totalAmount,
-        it?.subtotal,
-        it?.totalPrice,
-        it?.amount,
-      ].map((v) => Number(v) || 0);
-      let total = candidates.find((v) => v > 0) || 0;
-
-      if (!total) {
-        const unit =
-          Number(it?.price) ||
-          Number(it?.unitPrice) ||
-          Number(it?.unit_price) ||
-          Number(it?.unit_price_ex_vat) ||
-          0;
-        if (unit && qty) total = unit * qty;
-      }
-      return total || 0;
-    };
-
-    const map = new Map(); // key -> aggregate
-    (list || [])
-      .filter((o) => o.paymentStatus === "Paid" && new Date(o.createdAt) >= cutoff)
-      .forEach((o) => {
-        const items = Array.isArray(o.items) ? o.items : [];
-        items.forEach((it) => {
-          const id = it?.product?._id || it?.productId || it?.sku || it?.name || "unknown";
-          const name = it?.product?.name || it?.name || "—";
-          const qty = Number(it?.qty || it?.quantity || 1);
-          const lineTotal = getItemAmount(it, qty);
-
-          if (!lineTotal) return; // on ignore les 0
-          const key = `${id}::${name}`;
-          const prev = map.get(key) || { key, name, total: 0, qty: 0 };
-          prev.total += lineTotal;
-          prev.qty += qty;
-          map.set(key, prev);
-        });
-      });
-
-    const arr = Array.from(map.values())
-      .map((r) => {
-        // enrichissement avec inventaire
-        const inv =
-          inventory.find((x) => x?.product?._id && r.key.startsWith(`${x.product._id}::`)) ||
-          inventory.find((x) => (x?.product?.name || "").trim() === r.name.trim());
-        const nearThreshold =
-          inv && Number(inv.currentStock ?? 0) <= Number(inv.reorderPoint ?? -Infinity);
-        const suggestQty = inv?.reorderQty ?? 1;
-        return { ...r, nearThreshold, suggestQty };
-      })
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 5);
-
-    setTopProducts(arr);
-  }
 
   /* ----------------------- Histogramme SVG ----------------------- */
   const BarChart = ({ data }) => {
@@ -620,51 +552,6 @@ export default function ClientDashboard() {
               </div>
             </article>
 
-            {/* Top 5 dépenses par produit */}
-            <article className="order-item">
-              <div className="order-col grow" style={{ width: "100%" }}>
-                <p className="order-title">Top 5 dépenses par produit (30 jours)</p>
-
-                {topProducts.length === 0 ? (
-                  <div className="orders-empty">Aucune donnée</div>
-                ) : (
-                  <div>
-                    {/* En-têtes */}
-                    <div style={{ ...s.cardRow, fontWeight: 600, paddingTop: 0 }}>
-                      <div>Produit</div>
-                      <div>Dépenses</div>
-                      <div>Qté achetée</div>
-                      <div>Action</div>
-                    </div>
-                    {/* Lignes */}
-                    {topProducts.map((p) => (
-                      <div key={p.key} style={s.cardRow}>
-                        <div>
-                          <div style={{ fontWeight: 600 }}>{p.name}</div>
-                          {p.nearThreshold && <span style={s.pillWarn}>Proche du seuil</span>}
-                        </div>
-                        <div>{money.format(p.total)}</div>
-                        <div>{p.qty}</div>
-                        <div>
-                          <button
-                            className="ph-btn"
-                            onClick={() => navigate("/client-dashboard/catalog", { state: { q: p.name } })}
-                            title="Ajouter au panier"
-                          >
-                            Commander
-                          </button>
-                          {p.suggestQty ? (
-                            <span style={{ marginLeft: 8, fontSize: 12, color: "var(--muted)" }}>
-                              (suggestion : {p.suggestQty})
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </article>
           </div>
         </section>
       </main>
