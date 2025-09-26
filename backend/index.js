@@ -18,6 +18,7 @@ const paymentRoutes = require('./routes/payment');
 const supplierRoutes = require('./routes/supplier');
 const chatbotRoutes = require('./routes/chatbot'); // <-- AJOUTER CETTE LIGNE
 const statisticsRoutes = require('./routes/statisticsRoutes');
+const webhookRoutes = require('./routes/webhook');
 const errorHandler = require('./middleware/errorHandler');
 
 // Error handler (doit être APRES les routes)
@@ -63,6 +64,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/supplier', supplierRoutes);
 app.use('/api/chatbot', chatbotRoutes); // <-- AJOUTER CETTE LIGNE
 app.use('/api/statistics', statisticsRoutes);
+app.use('/api/webhook', webhookRoutes);
 
 /* ------------------------ 4) HEALTHCHECK ----------------------------- */
 app.get('/api/health', (req, res) => {
