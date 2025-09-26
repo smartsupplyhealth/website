@@ -20,7 +20,6 @@ export default function ClientDashboard() {
     processingOrders: 0,
     cancelledOrders: 0,
     deliveredOrders: 0,
-    totalPaidThisMonth: 0,
   });
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,8 +28,6 @@ export default function ClientDashboard() {
   const [inventory, setInventory] = useState([]);
   const [invLoading, setInvLoading] = useState(true);
 
-  // ===== Dépenses 30 jours =====
-  const [expenses30d, setExpenses30d] = useState([]); // [{date:'YYYY-MM-DD', total}]
   
   // ===== Auto Order Status =====
   const [autoOrderStatus, setAutoOrderStatus] = useState({
@@ -144,25 +141,14 @@ export default function ClientDashboard() {
         const cancelledOrders = list.filter((o) => o.status === "cancelled").length;
         const deliveredOrders = list.filter((o) => o.status === "delivered").length;
 
-        // total payé ce mois
-        const now = new Date();
-        const totalPaidThisMonth = list
-          .filter((o) => {
-            const d = new Date(o.createdAt);
-            return o.paymentStatus === "Paid" && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-          })
-          .reduce((s, o) => s + (o.totalAmount || 0), 0);
-
         if (mounted) {
-          setStats({ pendingOrders, processingOrders, cancelledOrders, deliveredOrders, totalPaidThisMonth });
+          setStats({ pendingOrders, processingOrders, cancelledOrders, deliveredOrders });
           setOrders([...list].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
           
           // Check auto order limits and show notification
           checkAutoOrderLimits(list);
         }
 
-        // Dépenses: histogramme
-        buildExpenses30d(list);
       } catch (e) {
         console.error("Erreur dashboard:", e);
       } finally {
@@ -219,85 +205,8 @@ export default function ClientDashboard() {
     }
   };
 
-  /* ----------------------- Dépenses: histogramme 30 jours ----------------------- */
-  function buildExpenses30d(list) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const days = [...Array(30)].map((_, i) => {
-      const d = new Date(today);
-      d.setDate(today.getDate() - (29 - i));
-      return d;
-    });
-    const dayKey = (d) => d.toISOString().slice(0, 10);
-    const base = Object.fromEntries(days.map((d) => [dayKey(d), 0]));
-
-    (list || [])
-      .filter((o) => o.paymentStatus === "Paid")
-      .forEach((o) => {
-        const d = new Date(o.createdAt);
-        d.setHours(0, 0, 0, 0);
-        const key = dayKey(d);
-        if (key in base) base[key] += o.totalAmount || 0;
-      });
-
-    setExpenses30d(Object.keys(base).map((k) => ({ date: k, total: base[k] })));
-  }
 
 
-  /* ----------------------- Histogramme SVG ----------------------- */
-  const BarChart = ({ data }) => {
-    const w = 640,
-      h = 160,
-      padL = 36,
-      padR = 12,
-      padT = 12,
-      padB = 28;
-    const max = Math.max(1, ...data.map((d) => d.total || 0));
-    const barW = (w - padL - padR) / (data.length || 1);
-
-    return (
-      <svg width="100%" viewBox={`0 0 ${w} ${h}`} role="img" aria-label="Dépenses par jour (30 jours)">
-        {/* Axe X */}
-        <line x1={padL} y1={h - padB} x2={w - padR} y2={h - padB} stroke="#c9c9c9" />
-        {/* Axe Y */}
-        <line x1={padL} y1={padT} x2={padL} y2={h - padB} stroke="#c9c9c9" />
-
-        {/* Graduations Y (0, 50%, 100% du max) */}
-        {[0, 0.5, 1].map((t) => {
-          const y = h - padB - t * (h - padT - padB);
-          return (
-            <g key={t}>
-              <line x1={padL - 4} x2={padL} y1={y} y2={y} stroke="#c9c9c9" />
-              <text x={padL - 8} y={y + 4} fontSize="10" textAnchor="end">
-                {Math.round(t * 100)}%
-              </text>
-            </g>
-          );
-        })}
-
-        {/* Barres */}
-        {data.map((d, i) => {
-          const x = padL + i * barW + 1;
-          const bh = ((d.total || 0) / max) * (h - padT - padB);
-          const y = h - padB - bh;
-          return (
-            <g key={d.date}>
-              <rect x={x} y={y} width={Math.max(1, barW - 2)} height={bh} fill="currentColor" opacity="0.8" />
-            </g>
-          );
-        })}
-
-        {/* Labels X (tous les 5 jours) */}
-        {data.map((d, i) =>
-          i % 5 === 0 ? (
-            <text key={i} x={padL + i * barW + barW / 2} y={h - 8} fontSize="10" textAnchor="middle">
-              {d.date?.slice(5)}
-            </text>
-          ) : null
-        )}
-      </svg>
-    );
-  };
 
   /* ----------------------- Styles inline ----------------------- */
   const s = {
@@ -445,21 +354,6 @@ export default function ClientDashboard() {
           </article>
         </section>
 
-        {/* Dépenses du mois (KPI) */}
-        <section className="stats-wide-row">
-          <article className="stat-card stat-card--wide">
-            <div className="stat-card-content">
-              <div className="stat-card-icon purple">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-              </div>
-              <div className="stat-card-info">
-                <p className="stat-card-label">Dépenses du mois</p>
-                <p className="stat-card-value">{loading ? <span className="sk sk-text" style={{width:160}} /> : money.format(stats.totalPaidThisMonth)}</p>
-              </div>
-            </div>
-          </article>
-        </section>
 
         {/* ===== (1) AUTO-COMMANDES À VENIR ===== */}
         <section className="recent-orders">
@@ -530,30 +424,6 @@ export default function ClientDashboard() {
           </div>
         </section>
 
-        {/* ===== (2) DÉPENSES — HISTOGRAMME + TOP PRODUITS ===== */}
-        <section className="recent-orders">
-          <div className="recent-header">
-            <h2>Dépenses (30 jours)</h2>
-            <button className="link-btn" onClick={() => navigate("/client-dashboard/orders")}>Historique</button>
-          </div>
-
-          <div className="orders-list" style={{ gap: 16 }}>
-            {/* Histogramme */}
-            <article className="order-item" style={{ alignItems: "center" }}>
-              <div className="order-col grow">
-                <p className="order-title">Dépenses journalières</p>
-                <div style={{ color: "var(--muted)" }}>
-                  {expenses30d.length ? <BarChart data={expenses30d} /> : <span className="orders-empty">Aucune donnée</span>}
-                </div>
-              </div>
-              <div className="order-col amount">
-                <strong>{money.format(expenses30d.reduce((s, d) => s + (d.total || 0), 0))}</strong>
-                <div style={{ fontSize: 12, color: "var(--muted)" }}>Total 30 jours</div>
-              </div>
-            </article>
-
-          </div>
-        </section>
       </main>
     </div>
   );
