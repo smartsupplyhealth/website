@@ -1,0 +1,63 @@
+# Azure DevOps Pipeline for SmartSupply Health
+trigger:
+- main
+- develop
+
+variables:
+  buildConfiguration: 'Release'
+  azureSubscription: 'Azure-Service-Connection'
+  resourceGroupName: 'SmartSupply-Health-RG'
+  webAppName: 'smartsupply-health-app'
+  containerRegistry: 'smartsupplyregistry.azurecr.io'
+  imageRepository: 'smartsupply-health'
+  containerRegistryServiceConnection: 'Azure-Container-Registry'
+  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
+  tag: '$(Build.BuildId)'
+
+stages:
+- stage: Build
+  displayName: Build and push stage
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: Docker@2
+      displayName: Build and push an image to container registry
+      inputs:
+        command: buildAndPush
+        repository: $(imageRepository)
+        dockerfile: $(dockerfilePath)
+        containerRegistry: $(containerRegistryServiceConnection)
+        tags: |
+          $(tag)
+          latest
+
+- stage: Deploy
+  displayName: Deploy stage
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    environment: 'production'
+    pool:
+      vmImage: 'ubuntu-latest'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebAppContainer@1
+            displayName: 'Azure Web App on Container Deploy'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              appName: $(webAppName)
+              containers: $(containerRegistry)/$(imageRepository):$(tag)
+              appSettings: |
+                -NODE_ENV "production"
+                -MONGODB_URI "$(MONGODB_URI)"
+                -JWT_SECRET "$(JWT_SECRET)"
+                -SENDGRID_API_KEY "$(SENDGRID_API_KEY)"
+                -STRIPE_SECRET_KEY "$(STRIPE_SECRET_KEY)"
+                -GOOGLE_AI_API_KEY "$(GOOGLE_AI_API_KEY)"

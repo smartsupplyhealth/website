@@ -4,10 +4,10 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const crypto = require('crypto');
 const sendEmail = require('../utils/emailService');
 const { auth } = require('../middleware/auth');
-const { 
-  validateRegister, 
-  validateLogin, 
-  checkValidation 
+const {
+  validateRegister,
+  validateLogin,
+  checkValidation
 } = require('../middleware/validation');
 const Client = require('../models/Client');
 const Supplier = require('../models/Supplier');
@@ -68,10 +68,10 @@ router.post('/register', validateRegister, checkValidation, async (req, res) => 
 
     const token = generateToken(user._id, role);
 
-    res.status(201).json({ 
-      success: true, 
-      message: 'User registered successfully', 
-      data: { user, token } 
+    res.status(201).json({
+      success: true,
+      message: 'User registered successfully',
+      data: { user, token }
     });
 
   } catch (error) {
@@ -119,9 +119,10 @@ router.post('/login', validateLogin, checkValidation, async (req, res) => {
   const token = generateToken(user._id, role);
   console.log('Login successful for:', email);
 
-// Dans votre route login, juste avant res.json()
-console.log('Données envoyées au frontend:', { user: user.toObject(), token, role });
-res.json({ success: true, message: 'Login successful', data: { user, token, role } });});
+  // Dans votre route login, juste avant res.json()
+  console.log('Données envoyées au frontend:', { user: user.toObject(), token, role });
+  res.json({ success: true, message: 'Login successful', data: { user, token, role } });
+});
 
 
 
@@ -162,7 +163,7 @@ router.put('/profile', auth, async (req, res) => {
   try {
     const { role } = req.user;
     const Model = role === 'client' ? Client : Supplier;
-    
+
     const user = await Model.findById(req.user._id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -170,7 +171,7 @@ router.put('/profile', auth, async (req, res) => {
 
     // Mettre à jour les champs fournis dans la requête
     const allowedFields = ['name', 'phone', 'clinicName', 'clinicType', 'address', 'companyName', 'password'];
-    
+
     Object.keys(req.body).forEach(key => {
       // On met à jour le champ seulement s'il est permis et non vide (sauf pour le mot de passe)
       if (allowedFields.includes(key) && (req.body[key] || key === 'password' && req.body[key])) {

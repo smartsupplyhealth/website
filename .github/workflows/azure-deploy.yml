@@ -1,0 +1,68 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: 'smartsupply-health-app'
+  AZURE_RESOURCE_GROUP: 'SmartSupply-Health-RG'
+  CONTAINER_REGISTRY: 'smartsupplyregistry.azurecr.io'
+  IMAGE_NAME: 'smartsupply-health'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Azure Container Registry
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ env.CONTAINER_REGISTRY }}
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: |
+          ${{ env.CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          ${{ env.CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        resource-group: ${{ env.AZURE_RESOURCE_GROUP }}
+        images: ${{ env.CONTAINER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+    - name: Configure App Settings
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+          az webapp config appsettings set \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --settings \
+              NODE_ENV=production \
+              MONGODB_URI="${{ secrets.MONGODB_URI }}" \
+              JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+              SENDGRID_API_KEY="${{ secrets.SENDGRID_API_KEY }}" \
+              STRIPE_SECRET_KEY="${{ secrets.STRIPE_SECRET_KEY }}" \
+              GOOGLE_AI_API_KEY="${{ secrets.GOOGLE_AI_API_KEY }}"
+
+    - name: Restart Web App
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+          az webapp restart \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.AZURE_WEBAPP_NAME }}

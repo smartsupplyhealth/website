@@ -1,5 +1,5 @@
 # Multi-stage build for SmartSupply Health
-FROM node:18-alpine AS frontend-build
+FROM node:20-alpine AS frontend-build
 
 # Set working directory
 WORKDIR /app/frontend
@@ -8,7 +8,7 @@ WORKDIR /app/frontend
 COPY frontend/package*.json ./
 
 # Install frontend dependencies
-RUN npm ci --only=production
+RUN npm ci --legacy-peer-deps --only=production
 
 # Copy frontend source code
 COPY frontend/ .
@@ -17,7 +17,7 @@ COPY frontend/ .
 RUN npm run build
 
 # Backend stage
-FROM node:18-alpine AS backend
+FROM node:20-alpine AS backend
 
 # Set working directory
 WORKDIR /app
@@ -26,7 +26,7 @@ WORKDIR /app
 COPY backend/package*.json ./
 
 # Install backend dependencies
-RUN npm ci --only=production
+RUN npm ci --legacy-peer-deps --only=production
 
 # Copy backend source code
 COPY backend/ .
