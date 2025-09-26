@@ -1,0 +1,173 @@
+.new-order-page {
+  min-height: calc(100vh - 80px);
+  background: #f5f7fa;
+  padding: 24px 16px 40px;
+}
+
+.new-order-header {
+  max-width: 1200px;
+  margin: 0 auto 16px auto;
+}
+.new-order-header .title {
+  margin: 0 0 8px 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #111827;
+}
+.new-order-subtitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #374151;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+.new-order-subtitle::before { content: "🛒"; }
+
+/* Conteneur */
+.new-order-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  box-shadow: 0 12px 36px rgba(0,0,0,.08);
+  padding: 20px;
+}
+.card-header {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin: 0 0 12px 0;
+  color: #111827;
+}
+
+/* Items du panier */
+.cart-items { display: grid; gap: 12px; }
+.cart-item {
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 10px 0;
+}
+.item-info h4 { margin: 0; font-size: 1rem; font-weight: 700; }
+.item-info p { margin: 0; color: #6b7280; }
+.item-controls { display: flex; align-items: center; gap: 12px; }
+.quantity-controls { display: flex; align-items: center; gap: 6px; }
+.qty-btn {
+  padding: 6px 10px; border-radius: 8px; border: 1px solid #d1d5db;
+  background: #fff; cursor: pointer; font-weight: 700;
+}
+.remove-btn {
+  background: #ef4444; color: #fff; border: none; border-radius: 8px;
+  padding: 6px 10px; font-weight: 700; cursor: pointer;
+}
+.item-total { font-weight: 700; }
+
+/* Résumé */
+.cart-summary {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 14px; font-size: 1.1rem;
+}
+.total-amount { font-weight: 800; }
+
+.cart-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.add-products-btn {
+  background: #e5e7eb;
+  color: #111827;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .2s ease;
+}
+.add-products-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,.12);
+}
+
+.checkout-btn {
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  color: #fff; border: none; border-radius: 10px;
+  padding: 10px 16px; font-weight: 700; cursor: pointer;
+  box-shadow: 0 6px 16px rgba(59,130,246,.28);
+}
+.checkout-btn:hover { transform: translateY(-2px); }
+
+/* Modal checkout */
+.checkout-modal {
+  position: fixed; inset: 0; background: rgba(17,24,39,.5);
+  display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50;
+}
+.checkout-content {
+  background: #fff; border-radius: 16px; width: 100%; max-width: 600px;
+  box-shadow: 0 16px 48px rgba(0,0,0,.25); animation: pop .2s ease;
+}
+@keyframes pop { from { transform: scale(.98); opacity: .9; } to { transform: scale(1); opacity: 1; } }
+.checkout-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px; border-bottom: 1px solid #e5e7eb; background: #f8fafc;
+}
+.checkout-header h2 { margin: 0; font-size: 1.2rem; font-weight: 800; }
+.close-btn { background: transparent; border: none; font-size: 1.5rem; cursor: pointer; }
+.delivery-section, .notes-section, .checkout-summary { padding: 16px; }
+.address-form input, .notes-section textarea {
+  width: 100%; padding: 10px; border-radius: 10px;
+  border: 1px solid #d1d5db; margin-top: 6px;
+}
+.checkout-total {
+  display: flex; justify-content: space-between;
+  font-size: 1.1rem; font-weight: 700;
+}
+.checkout-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+.cancel-btn {
+  background: #e5e7eb; border: none; border-radius: 10px; padding: 10px 14px; font-weight: 700;
+}
+.confirm-order-btn {
+  background: #16a34a; color: #fff; border: none; border-radius: 10px; padding: 10px 14px; font-weight: 700;
+}
+
+/* ===== Notifs (couleurs lisibles) ===== */
+.notification {
+  border-radius: 12px;
+  border: 1px solid transparent;
+  box-shadow: 0 8px 20px rgba(0,0,0,.08);
+  font-weight: 600;
+}
+
+/* Erreur (rouge) */
+.notification.error {
+  background: #fee2e2;      /* rouge très clair */
+  color: #991b1b;            /* rouge foncé lisible */
+  border-color: #fecaca;
+}
+
+/* Succès (vert) */
+.notification.success {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+/* Info (bleu) */
+.notification.info {
+  background: #eff6ff;
+  color: #1e40af;
+  border-color: #bfdbfe;
+}
+
+/* Warning (jaune) */
+.notification.warning {
+  background: #fef9c3;
+  color: #92400e;
+  border-color: #fde68a;
+}

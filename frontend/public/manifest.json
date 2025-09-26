@@ -1,0 +1,8 @@
+{
+  "short_name": "SmartSupply Health",
+  "name": "SmartSupply Health - Intelligent Supply Chain Management",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}

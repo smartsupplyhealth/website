@@ -1,0 +1,233 @@
+/* PaymentModal.css */
+
+.payment-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1050;
+    backdrop-filter: blur(5px);
+}
+
+.payment-modal {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    animation: slideIn 0.3s ease-out;
+    overflow: hidden;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.payment-modal-header {
+    padding: 24px;
+    background: #f7fafc;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: center;
+}
+
+.payment-modal-header h3 {
+    margin: 0 0 8px 0;
+    color: #2d3748;
+    font-size: 1.5rem;
+}
+
+.payment-modal-header p {
+    margin: 0;
+    color: #4a5568;
+    font-size: 1.1rem;
+}
+
+.payment-modal-body {
+    padding: 24px;
+}
+
+.payment-error {
+    background: #fed7d7;
+    color: #c53030;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #4a5568;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #3182ce;
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2);
+}
+
+.form-row {
+    display: flex;
+    gap: 16px;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+.payment-modal-footer {
+    padding: 24px;
+    background: #f7fafc;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.payment-modal-footer .cancel-btn,
+.payment-modal-footer .pay-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.payment-modal-footer .cancel-btn {
+    background: #e2e8f0;
+    color: #4a5568;
+}
+
+.payment-modal-footer .cancel-btn:hover:not(:disabled) {
+    background: #cbd5e0;
+}
+
+.payment-modal-footer .pay-btn {
+    background: linear-gradient(135deg, #48bb78, #38a169);
+    color: white;
+}
+
+.payment-modal-footer .pay-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #38a169, #2f855a);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(56, 161, 105, 0.3);
+}
+
+.payment-modal-footer .pay-btn:disabled,
+.payment-modal-footer .cancel-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* CVV Section Styling */
+.cvv-section {
+    margin-top: 16px;
+}
+
+.cvv-section label {
+    display: block;
+    margin-bottom: 8px;
+    color: #4a5568;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.cvv-input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.cvv-input:focus {
+    outline: none;
+    border-color: #3182ce;
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2);
+}
+
+.cvv-help {
+    display: block;
+    margin-top: 4px;
+    color: #718096;
+    font-size: 0.8rem;
+}
+
+/* Saved Card Section */
+.saved-card-section {
+    margin-bottom: 16px;
+}
+
+.saved-card-section label {
+    display: block;
+    margin-bottom: 8px;
+    color: #4a5568;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.saved-card-select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: white;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.saved-card-select:focus {
+    outline: none;
+    border-color: #3182ce;
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2);
+}
+
+.link-button {
+    background: none;
+    border: none;
+    color: #3182ce;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-top: 8px;
+    padding: 0;
+}
+
+.link-button:hover {
+    color: #2c5aa0;
+}

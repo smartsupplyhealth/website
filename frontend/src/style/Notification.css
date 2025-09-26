@@ -1,0 +1,33 @@
+/* Notification.css */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    border-radius: 8px;
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    z-index: 2000;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: all 0.3s ease-in-out;
+}
+
+.notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.notification.success {
+    background-color: #48bb78; /* Green */
+}
+
+.notification.error {
+    background-color: #e53e3e; /* Red */
+}
+
+.notification.info {
+    background-color: #3182ce; /* Blue */
+}

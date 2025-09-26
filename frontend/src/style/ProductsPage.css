@@ -1,0 +1,45 @@
+/* frontend/src/style/ProductsPage.css */
+
+.products-page-container {
+  padding: 20px; /* Padding uniforme pour les côtés */
+}
+
+.products-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  margin-top: 40px; /* Marge pour pousser le contenu vers le bas */
+  flex-wrap: wrap; /* Pour les petits écrans */
+}
+
+.products-page-header h1 {
+  margin: 0;
+  font-size: 1.8em;
+  color: var(--gray-800);
+}
+
+.add-product-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-dark) 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: var(--shadow-md);
+}
+
+.add-product-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.add-product-button svg {
+  font-size: 1.2em;
+}

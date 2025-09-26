@@ -1,0 +1,249 @@
+/* Profile.css sophistiqué */
+
+/* Contexte global */
+.profile-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: calc(100vh - 80px);
+  background: linear-gradient(135deg, #e0e7ff, #fdf2f8);
+  padding: 50px 20px;
+  box-sizing: border-box;
+}
+
+/* Carte principale en verre dépoli */
+.profile-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px) saturate(180%);
+  border-radius: 20px;
+  padding: 36px;
+  width: 100%;
+  max-width: 850px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation: fadeIn 0.8s ease;
+}
+
+.profile-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* En-tête */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid rgba(99, 102, 241, 0.2);
+}
+
+.profile-header-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #3b82f6);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 28px;
+  font-weight: bold;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.profile-header-text .profile-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+.profile-header-text .profile-subtitle {
+  font-size: 14px;
+  color: #4b5563;
+  margin: 4px 0 0;
+}
+
+/* Formulaire */
+.profile-form {
+  padding: 32px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.profile-form .form-row {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.profile-form .form-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-form .form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+/* Champs modernes */
+.profile-form .form-control {
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: none;
+  background: #f3f4f6;
+  box-shadow: inset 3px 3px 6px #d1d5db, inset -3px -3px 6px #ffffff;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.profile-form .form-control:focus {
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.3);
+  outline: none;
+}
+
+.profile-form .form-control:disabled {
+  background-color: #e5e7eb;
+  cursor: not-allowed;
+  color: #6b7280;
+}
+
+.profile-form .is-invalid {
+  border: 1px solid #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.profile-form .error-text {
+  color: #ef4444;
+  font-size: 13px;
+  margin-top: 6px;
+  min-height: 1em;
+}
+
+/* Séparateur */
+.profile-divider {
+  border: 0;
+  height: 1px;
+  background-color: #e5e7eb;
+  margin: 8px 0;
+}
+
+/* Section mot de passe */
+.password-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.password-section-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 16px;
+}
+
+/* Bouton premium */
+.profile-button {
+  padding: 16px 28px;
+  border: none;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 16px;
+  color: white;
+  background: linear-gradient(270deg, #6366f1, #3b82f6, #06b6d4);
+  background-size: 600% 600%;
+  animation: gradientShift 6s ease infinite;
+  cursor: pointer;
+  align-self: flex-end;
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+  margin-top: 12px;
+}
+
+.profile-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+}
+
+.profile-button:active {
+  transform: translateY(0);
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Alertes avec icônes */
+.auth-success, .auth-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-weight: 500;
+  animation: fadeIn 0.6s ease;
+}
+
+.auth-success::before {
+  content: "✔";
+  font-weight: bold;
+}
+
+.auth-error::before {
+  content: "⚠";
+  font-weight: bold;
+}
+
+.auth-success {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #34d399;
+}
+
+.auth-error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #f87171;
+}
+
+/* Harmoniser le select avec les inputs (certains navigateurs) */
+.profile-form select.form-control {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #6b7280 50%),
+                    linear-gradient(135deg, #6b7280 50%, transparent 50%),
+                    linear-gradient(to right, #f3f4f6, #f3f4f6);
+  background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%, 0 0;
+  background-size: 6px 6px, 6px 6px, 100% 100%;
+  background-repeat: no-repeat;
+  padding-right: 42px;
+}
+
+/* Éviter le jaune de l’autofill sur Chrome */
+.profile-form .form-control:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
+  box-shadow: 0 0 0 1000px #fff inset !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* Petits écrans : colonne pleine largeur pour plus de confort */
+@media (max-width: 640px) {
+  .profile-form .form-row { gap: 16px; }
+  .profile-form .form-group { min-width: 100%; }
+}

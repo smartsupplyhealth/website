@@ -1,0 +1,97 @@
+[
+  {
+    "name": "Seringue Stérile 'InjectaSafe'",
+    "description": "Seringue à usage unique avec aiguille fine pour injections intramusculaires ou sous-cutanées.",
+    "price": 8.50,
+    "category": "Consommables médicaux",
+    "stock": 200,
+    "supplier": { "$oid": "68963f12fe88b98c746b86a0" },
+    "images": [],
+    "usageInstructions": "Utiliser immédiatement après ouverture. Ne pas réutiliser. Éliminer dans un collecteur d’objets tranchants.",
+    "brandInfo": "InjectaSafe, spécialisé dans les dispositifs médicaux jetables.",
+    "technicalSpecs": [
+      { "specName": "Capacité", "specValue": "5 ml" },
+      { "specName": "Aiguille", "specValue": "25G" }
+    ],
+    "faqs": [
+      { "question": "Est-elle sans latex ?", "answer": "Oui, entièrement sans latex pour éviter les allergies." }
+    ],
+    "targetAudience": "Hôpitaux, cabinets médicaux, laboratoires"
+  },
+  {
+    "name": "Masque Chirurgical 'MediMask'",
+    "description": "Masque à 3 plis offrant une protection contre les projections et particules.",
+    "price": 15.00,
+    "category": "Consommables médicaux",
+    "stock": 500,
+    "supplier": { "$oid": "68963f12fe88b98c746b86a0" },
+    "images": [],
+    "usageInstructions": "Positionner les élastiques derrière les oreilles et pincer la barrette nasale pour un ajustement optimal.",
+    "brandInfo": "MediMask, certifié CE et conforme aux normes EN14683.",
+    "technicalSpecs": [
+      { "specName": "Type", "specValue": "Type II R" },
+      { "specName": "Filtration bactérienne", "specValue": "≥ 98%" }
+    ],
+    "faqs": [
+      { "question": "Convient-il pour le bloc opératoire ?", "answer": "Oui, homologué pour un usage hospitalier." }
+    ],
+    "targetAudience": "Médecins, infirmiers, grand public"
+  },
+  {
+    "name": "Tensiomètre Automatique 'CardioCheck'",
+    "description": "Appareil électronique pour mesurer la pression artérielle et le pouls.",
+    "price": 79.99,
+    "category": "Appareils médicaux",
+    "stock": 60,
+    "supplier": { "$oid": "68963f12fe88b98c746b86a0" },
+    "images": [],
+    "usageInstructions": "Mettre le brassard au bras, rester immobile et appuyer sur le bouton Start.",
+    "brandInfo": "CardioCheck, certifié ISO pour dispositifs médicaux.",
+    "technicalSpecs": [
+      { "specName": "Méthode de mesure", "specValue": "Oscillométrique" },
+      { "specName": "Mémoire", "specValue": "99 mesures" }
+    ],
+    "faqs": [
+      { "question": "Convient-il aux personnes âgées ?", "answer": "Oui, grand écran et résultats faciles à lire." }
+    ],
+    "targetAudience": "Particuliers, pharmacies, cliniques"
+  },
+  {
+    "name": "Oxymètre de Pouls 'OxyCare'",
+    "description": "Petit appareil portable pour mesurer la saturation en oxygène (SpO2) et la fréquence cardiaque.",
+    "price": 39.90,
+    "category": "Appareils médicaux",
+    "stock": 100,
+    "supplier": { "$oid": "68963f12fe88b98c746b86a0" },
+    "images": [],
+    "usageInstructions": "Placer un doigt propre dans le capteur, allumer et lire le résultat affiché.",
+    "brandInfo": "OxyCare, recommandé pour le suivi des pathologies respiratoires.",
+    "technicalSpecs": [
+      { "specName": "Plage SpO2", "specValue": "70–100%" },
+      { "specName": "Plage BPM", "specValue": "30–250" }
+    ],
+    "faqs": [
+      { "question": "Peut-il être utilisé pour les enfants ?", "answer": "Oui, mais il est recommandé pour > 5 ans." }
+    ],
+    "targetAudience": "Hôpitaux, particuliers, services d’urgence"
+  },
+  {
+    "name": "Compresse Stérile 'MediGauze'",
+    "description": "Compresse de gaze stérile très absorbante, idéale pour nettoyer ou couvrir les plaies.",
+    "price": 10.00,
+    "category": "Pansements et soins",
+    "stock": 300,
+    "supplier": { "$oid": "68963f12fe88b98c746b86a0" },
+    "images": [],
+    "usageInstructions": "Appliquer sur une plaie désinfectée, changer régulièrement selon la prescription.",
+    "brandInfo": "MediGauze, leader européen du matériel de pansement.",
+    "technicalSpecs": [
+      { "specName": "Dimension", "specValue": "10x10 cm" },
+      { "specName": "Stérilité", "specValue": "Stérile" }
+    ],
+    "faqs": [
+      { "question": "Colle-t-elle à la plaie ?", "answer": "Non, elle est conçue pour éviter l’adhérence." }
+    ],
+    "targetAudience": "Infirmiers, hôpitaux, premiers secours"
+  }
+]
