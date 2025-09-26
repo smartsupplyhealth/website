@@ -35,6 +35,16 @@ app.use(express.json()); // <- une seule fois et AVANT les routes
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 /* ------------------------ 2) ROUTES PUBLIQUES ------------------------ */
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 // Auth en premier (login/register)
 app.use('/api/auth', authRoutes);
 
