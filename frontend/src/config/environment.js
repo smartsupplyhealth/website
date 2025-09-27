@@ -6,12 +6,12 @@ const config = {
     VERSION: '1.0.0'
   },
   staging: {
-    API_URL: 'https://smartsupply-health-preprod.azurecontainerapps.io',
+    API_URL: 'https://ssh-backend-220371.azurewebsites.net',
     ENVIRONMENT: 'staging',
     VERSION: '1.0.0'
   },
   production: {
-    API_URL: 'https://smartsupply-health-prod.azurecontainerapps.io',
+    API_URL: 'https://ssh-backend-220371.azurewebsites.net',
     ENVIRONMENT: 'production',
     VERSION: '1.0.0'
   }
@@ -23,7 +23,7 @@ const getEnvironment = () => {
   if (process.env.REACT_APP_ENVIRONMENT) {
     return process.env.REACT_APP_ENVIRONMENT;
   }
-  
+
   // Check for API URL environment variable
   if (process.env.REACT_APP_API_URL) {
     if (process.env.REACT_APP_API_URL.includes('preprod')) {
@@ -36,7 +36,7 @@ const getEnvironment = () => {
       return 'development';
     }
   }
-  
+
   // Default to development
   return 'development';
 };
