@@ -19,6 +19,10 @@ RUN npm run build
 # Backend stage
 FROM node:20-alpine AS backend
 
+# Create app user for security
+RUN addgroup -g 1001 -S nodejs && \
+  adduser -S nodejs -u 1001
+
 # Set working directory
 WORKDIR /app
 
@@ -26,7 +30,8 @@ WORKDIR /app
 COPY backend/package*.json ./
 
 # Install backend dependencies
-RUN npm ci --legacy-peer-deps --only=production
+RUN npm ci --legacy-peer-deps --only=production && \
+  npm cache clean --force
 
 # Copy backend source code
 COPY backend/ .
@@ -34,8 +39,12 @@ COPY backend/ .
 # Copy built frontend to backend public directory
 COPY --from=frontend-build /app/frontend/build ./public
 
-# Create uploads directory
-RUN mkdir -p uploads
+# Create uploads directory and set permissions
+RUN mkdir -p uploads && \
+  chown -R nodejs:nodejs /app
+
+# Switch to non-root user
+USER nodejs
 
 # Expose port
 EXPOSE 5000

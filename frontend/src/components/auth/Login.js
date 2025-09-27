@@ -8,7 +8,7 @@ const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    role: '' 
+    role: ''
   });
   const [formErrors, setFormErrors] = useState({});
   const [localError, setLocalError] = useState('');
@@ -34,7 +34,7 @@ const Login = () => {
     if (error) clearError();
     if (localError) setLocalError('');
     const { name, value } = e.target;
-    
+
     setFormData(prevData => ({ ...prevData, [name]: value }));
 
     const errorMessage = validateField(name, value);
@@ -51,7 +51,7 @@ const Login = () => {
 
     const passwordError = validateField('password', formData.password);
     if (passwordError) errors.password = passwordError;
-    
+
     if (!formData.role) {
       errors.role = 'Veuillez sélectionner un rôle.';
     }
@@ -93,31 +93,19 @@ const Login = () => {
         <div className="auth-background-shape shape-2"></div>
         <div className="auth-background-shape shape-3"></div>
       </div>
-      
+
       <div className="auth-card">
         <div className="auth-header">
           <div className="auth-logo">
-            <div className="auth-logo-icon"> 
-           <img src={logo}  className="auth-logo-img" />
+            <div className="auth-logo-icon">
+              <img src={logo} className="auth-logo-img" />
             </div>
             <h1 className="auth-logo-text">SmartSupply Health</h1>
           </div>
           <h2 className="auth-title">Connexion</h2>
           <p className="auth-subtitle">Accédez à votre espace personnel</p>
-          <div style={{ 
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
-            color: 'white', 
-            padding: '8px 16px', 
-            borderRadius: '8px', 
-            fontSize: '14px', 
-            textAlign: 'center', 
-            margin: '8px 0',
-            fontWeight: '500'
-          }}>
-            🚀 CI/CD Pipeline Active - Version 1.1.0
-          </div>
         </div>
-        
+
         <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="auth-form" noValidate>
           {(error || localError) && (
             <div className="auth-error">
@@ -202,7 +190,7 @@ const Login = () => {
             {formErrors.role && <p className="auth-error-text">{formErrors.role}</p>}
           </div>
 
-          <button 
+          <button
             type="submit"
             disabled={loading}
             className="auth-button auth-button-primary"

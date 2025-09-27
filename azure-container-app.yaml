@@ -1,0 +1,76 @@
+apiVersion: 2022-03-01
+kind: ContainerApp
+properties:
+  configuration:
+    activeRevisionsMode: Single
+    ingress:
+      external: true
+      targetPort: 5000
+      allowInsecure: false
+      traffic:
+        - weight: 100
+          latestRevision: true
+    registries:
+      - server: smartsupplyacr.azurecr.io
+        username: smartsupplyacr
+        passwordSecretRef: acr-password
+    secrets:
+      - name: acr-password
+        value: "your-acr-password-here"
+      - name: mongodb-uri
+        value: "your-mongodb-connection-string"
+      - name: jwt-secret
+        value: "your-jwt-secret-here"
+      - name: stripe-secret-key
+        value: "your-stripe-secret-key"
+      - name: sendgrid-api-key
+        value: "your-sendgrid-api-key"
+      - name: google-api-key
+        value: "your-google-api-key"
+  template:
+    containers:
+      - name: smartsupply-health
+        image: smartsupplyacr.azurecr.io/smartsupply-health:latest
+        resources:
+          cpu: 1.0
+          memory: 2Gi
+        env:
+          - name: NODE_ENV
+            value: "production"
+          - name: PORT
+            value: "5000"
+          - name: MONGODB_URI
+            secretRef: mongodb-uri
+          - name: JWT_SECRET
+            secretRef: jwt-secret
+          - name: STRIPE_SECRET_KEY
+            secretRef: stripe-secret-key
+          - name: SENDGRID_API_KEY
+            secretRef: sendgrid-api-key
+          - name: GOOGLE_API_KEY
+            secretRef: google-api-key
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+    scale:
+      minReplicas: 1
+      maxReplicas: 10
+      rules:
+        - name: http-scaling
+          custom:
+            type: http
+            metadata:
+              concurrentRequests: "30"

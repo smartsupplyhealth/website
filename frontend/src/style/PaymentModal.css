@@ -29,6 +29,7 @@
         opacity: 0;
         transform: translateY(-30px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -181,11 +182,24 @@
     box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2);
 }
 
+.cvv-input.cvv-invalid {
+    border-color: #e53e3e;
+    box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.2);
+}
+
 .cvv-help {
     display: block;
     margin-top: 4px;
     color: #718096;
     font-size: 0.8rem;
+}
+
+.cvv-section .cvv-help {
+    color: #718096;
+}
+
+.cvv-section .cvv-input.cvv-invalid+.cvv-help {
+    color: #e53e3e;
 }
 
 /* Saved Card Section */

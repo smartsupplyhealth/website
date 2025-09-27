@@ -52,7 +52,7 @@ const CheckoutForm = ({ order, onPaySuccess, onCancel, setErrorMessage }) => {
 
     // Validate CVV for saved cards
     if (selectedCard && !isCardFormVisible) {
-      if (!cvv || cvv.length < 3) {
+      if (!cvv || cvv.length < 3 || cvv.length > 4 || !/^\d+$/.test(cvv)) {
         setErrorMessage('Please enter a valid CVV (3-4 digits).');
         setLoading(false);
         return;
@@ -68,7 +68,8 @@ const CheckoutForm = ({ order, onPaySuccess, onCancel, setErrorMessage }) => {
 
       let paymentMethodPayload;
       if (selectedCard && !isCardFormVisible) {
-        // Use a saved payment method
+        // Use a saved payment method - CVV is validated on frontend but not sent to Stripe
+        // Stripe handles CVV verification automatically for saved payment methods
         paymentMethodPayload = selectedCard;
       } else {
         // Use the new card from CardElement
@@ -77,7 +78,7 @@ const CheckoutForm = ({ order, onPaySuccess, onCancel, setErrorMessage }) => {
           card: cardElement,
           billing_details: {
             // TODO: Get customer name from context or props
-            name: 'Customer Name', 
+            name: 'Customer Name',
           },
         };
       }
@@ -87,14 +88,8 @@ const CheckoutForm = ({ order, onPaySuccess, onCancel, setErrorMessage }) => {
         payment_method: paymentMethodPayload,
       };
 
-      // For saved cards, we need to include CVV in the confirmation
-      if (selectedCard && !isCardFormVisible) {
-        confirmOptions.payment_method = {
-          payment_method: selectedCard,
-          cvc: cvv
-        };
-      } else if (typeof paymentMethodPayload === 'object' && paymentMethodPayload.card) {
-        // For new cards, save for future use
+      // For new cards, save for future use
+      if (typeof paymentMethodPayload === 'object' && paymentMethodPayload.card) {
         confirmOptions.setup_future_usage = 'off_session';
       }
 
@@ -175,22 +170,30 @@ const CheckoutForm = ({ order, onPaySuccess, onCancel, setErrorMessage }) => {
                 </option>
               ))}
             </select>
-            
+
             <div className="cvv-section">
               <label htmlFor="cvv-input">CVV *</label>
               <input
                 id="cvv-input"
-                type="text"
+                type="password"
                 value={cvv}
-                onChange={(e) => setCvv(e.target.value)}
-                placeholder="Enter the 3 or 4 digit code on your card"
-                className="cvv-input"
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, ''); // Only allow digits
+                  if (value.length <= 4) {
+                    setCvv(value);
+                  }
+                }}
+                placeholder="123"
+                className={`cvv-input ${cvv.length > 0 && (cvv.length < 3 || cvv.length > 4) ? 'cvv-invalid' : ''}`}
                 maxLength="4"
                 required
+                autoComplete="off"
               />
-              <small className="cvv-help">Enter the 3 or 4 digit code on your card</small>
+              <small className="cvv-help">
+                {cvv.length > 0 && cvv.length < 3 ? 'CVV must be 3-4 digits' : 'Enter the 3 or 4 digit code on your card'}
+              </small>
             </div>
-            
+
             <button type="button" className="link-button" onClick={() => { setCardFormVisible(true); setSelectedCard(''); }}>
               Pay with a new card
             </button>
@@ -246,7 +249,7 @@ const StripePaymentModal = ({ order, onPay, onCancel }) => {
   const handlePaySuccess = () => {
     // This function is called from the CheckoutForm on successful payment
     // It then calls the original onPay prop passed to StripePaymentModal
-    onPay(order._id); 
+    onPay(order._id);
   };
 
   return (
@@ -259,9 +262,9 @@ const StripePaymentModal = ({ order, onPay, onCancel }) => {
         {errorMessage && <div className="payment-error">{errorMessage}</div>}
         {stripePromise ? (
           <Elements stripe={stripePromise}>
-            <CheckoutForm 
-              order={order} 
-              onPaySuccess={handlePaySuccess} 
+            <CheckoutForm
+              order={order}
+              onPaySuccess={handlePaySuccess}
               onCancel={onCancel}
               setErrorMessage={setErrorMessage}
             />
