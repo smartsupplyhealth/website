@@ -2,8 +2,8 @@
 # This script helps deploy the SmartSupply Health application to Azure Container Apps
 
 param(
-    [string]$ResourceGroup = "smartsupply-rg",
-    [string]$ACRName = "smartsupplyacr",
+    [string]$ResourceGroup = "SmartSupply-Health-RG",
+    [string]$ACRName = "smartsupplyregistry",
     [string]$ContainerAppName = "smartsupply-health",
     [string]$EnvironmentName = "smartsupply-env",
     [string]$Location = "East US",

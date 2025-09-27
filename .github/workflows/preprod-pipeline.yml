@@ -18,9 +18,9 @@ on:
 env:
   # Pre-Production Environment Configuration
   ENVIRONMENT: preprod
-  AZURE_CONTAINER_REGISTRY: smartsupplyacr.azurecr.io
+  AZURE_CONTAINER_REGISTRY: smartsupplyregistry.azurecr.io
   CONTAINER_APP_NAME: smartsupply-health-preprod
-  RESOURCE_GROUP: smartsupply-rg
+  RESOURCE_GROUP: SmartSupply-Health-RG
   LOCATION: East US
   # Pre-Production Resource Limits (Lower for cost optimization)
   CPU_LIMIT: 1.0

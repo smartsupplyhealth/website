@@ -16,9 +16,9 @@ on:
 env:
   # Production Environment Configuration
   ENVIRONMENT: production
-  AZURE_CONTAINER_REGISTRY: smartsupplyacr.azurecr.io
+  AZURE_CONTAINER_REGISTRY: smartsupplyregistry.azurecr.io
   CONTAINER_APP_NAME: smartsupply-health-prod
-  RESOURCE_GROUP: smartsupply-rg
+  RESOURCE_GROUP: SmartSupply-Health-RG
   LOCATION: East US
   # Production Resource Limits
   CPU_LIMIT: 2.0

@@ -6,8 +6,8 @@
 set -e
 
 # Configuration
-RESOURCE_GROUP="smartsupply-rg"
-ACR_NAME="smartsupplyacr"
+RESOURCE_GROUP="SmartSupply-Health-RG"
+ACR_NAME="smartsupplyregistry"
 CONTAINER_APP_NAME="smartsupply-health"
 ENVIRONMENT_NAME="smartsupply-env"
 LOCATION="East US"
