@@ -104,6 +104,18 @@ const Login = () => {
           </div>
           <h2 className="auth-title">Connexion</h2>
           <p className="auth-subtitle">Accédez à votre espace personnel</p>
+          <div style={{ 
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+            color: 'white', 
+            padding: '8px 16px', 
+            borderRadius: '8px', 
+            fontSize: '14px', 
+            textAlign: 'center', 
+            margin: '8px 0',
+            fontWeight: '500'
+          }}>
+            🚀 CI/CD Pipeline Active - Version 1.1.0
+          </div>
         </div>
         
         <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="auth-form" noValidate>
