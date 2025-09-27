@@ -3,7 +3,7 @@ import { useAuth } from "../contexts/AuthContext";
 import "../style/Client.css";
 import SupplierNavbar from "./dashboard/SupplierNavbar";
 
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+import { API_URL } from '../config/environment';
 
 const formatPrice = (price) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "TND" })

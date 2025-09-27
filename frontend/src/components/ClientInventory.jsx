@@ -1,6 +1,7 @@
 // src/components/ClientInventory.jsx
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import axios from 'axios';
+import { API_URL } from '../config/environment';
 import '../style/ClientInventory.css';
 import ClientNavbar from './dashboard/ClientNavbar';
 
@@ -13,7 +14,7 @@ export default function ClientInventory() {
 
   const axiosAuth = useMemo(() => {
     return axios.create({
-      baseURL: 'http://localhost:5000',
+      baseURL: API_URL,
       headers: { Authorization: `Bearer ${token}` }
     });
   }, [token]);

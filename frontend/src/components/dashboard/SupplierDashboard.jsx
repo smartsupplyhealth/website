@@ -4,6 +4,7 @@ import './Dashboard.css';
 import { useNavigate } from 'react-router-dom';
 import SupplierNavbar from './SupplierNavbar';
 import { fetchAnalyticsSummary } from '../../services/api';
+import { API_URL } from '../../config/environment';
 import { ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, Legend, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#22d3ee', '#f472b6'];
@@ -25,7 +26,6 @@ const SupplierDashboard = () => {
       try {
         setLoading(true);
         // Supplier stats for top cards
-        const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
         const response = await fetch(`${API_URL}/api/supplier/stats`, {
           headers: {
             'Authorization': `Bearer ${token}`

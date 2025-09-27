@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../config/environment';
 import '../style/NewOrder.css';
 import ClientNavbar from './dashboard/ClientNavbar';
 import PaymentModal from './PaymentModal';
@@ -21,7 +22,7 @@ export default function NewOrder() {
   const token = useMemo(() => localStorage.getItem('token'), []);
   const axiosAuth = useMemo(() => {
     return axios.create({
-      baseURL: 'http://localhost:5000',
+      baseURL: API_URL,
       headers: { Authorization: `Bearer ${token}` },
     });
   }, [token]);
