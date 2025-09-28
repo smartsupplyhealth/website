@@ -64,7 +64,7 @@ const Register = () => {
   const handleChange = (e) => {
     if (error) clearError();
     const { name, value } = e.target;
-    
+
     setFormData(prevData => {
       const updatedData = { ...prevData, [name]: value };
       const errorMessage = validateField(name, value, updatedData);
@@ -113,19 +113,22 @@ const Register = () => {
         <div className="auth-background-shape shape-2"></div>
         <div className="auth-background-shape shape-3"></div>
       </div>
-      
+
       <div className="auth-card auth-card-large">
         <div className="auth-header">
           <div className="auth-logo">
-                      <div className="auth-logo-icon"> 
-                     <img src={logo}  className="auth-logo-img" />
-                      </div>
-                      <h1 className="auth-logo-text">SmartSupply Health</h1>
-                    </div>
+            <div className="auth-logo-icon">
+              <img src={logo} className="auth-logo-img" />
+            </div>
+            <h1 className="auth-logo-text">
+              <div>SmartSupply</div>
+              <div>Health</div>
+            </h1>
+          </div>
           <h2 className="auth-title">Inscription</h2>
           <p className="auth-subtitle">Créez votre compte professionnel</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="auth-form" noValidate>
           {error && (
             <div className="auth-error">
@@ -156,7 +159,7 @@ const Register = () => {
           </div>
 
 
-          
+
           <div className="auth-form-group">
             <label className="auth-label"></label>
             <div className="auth-radio-group">
@@ -304,7 +307,7 @@ const Register = () => {
                       <option value="medical_office">Cabinet Médical</option>
                     </select>
                   </div>
-                   {formErrors.clinicType && <p className="auth-error-text">{formErrors.clinicType}</p>}
+                  {formErrors.clinicType && <p className="auth-error-text">{formErrors.clinicType}</p>}
                 </div>
               </div>
 
@@ -353,7 +356,7 @@ const Register = () => {
             </div>
           )}
 
-          <button 
+          <button
             type="submit"
             disabled={loading}
             className="auth-button auth-button-primary"

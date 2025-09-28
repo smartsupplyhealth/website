@@ -73,8 +73,8 @@ export default function ClientCatalog({ reload }) {
       });
 
       const arr = Array.isArray(res?.data?.data) ? res.data.data
-                : Array.isArray(res?.data) ? res.data
-                : [];
+        : Array.isArray(res?.data) ? res.data
+          : [];
       setRawProducts(arr);
     } catch (e) {
       console.error("products:", e.response?.data?.message || e.message);
@@ -96,7 +96,7 @@ export default function ClientCatalog({ reload }) {
           headers: { Authorization: `Bearer ${token}` },
         });
         setCategories(Array.isArray(res.data) ? res.data : []);
-      } catch {}
+      } catch { }
     })();
   }, []);
 
@@ -110,7 +110,7 @@ export default function ClientCatalog({ reload }) {
         });
         const id = me?.data?.data?.user?._id;
         if (id) setClientId(id);
-      } catch {}
+      } catch { }
     })();
   }, []);
 
@@ -151,12 +151,12 @@ export default function ClientCatalog({ reload }) {
       arr = arr.filter((p) => Number(p.stock ?? 0) > 0);
     }
     switch (sort) {
-      case "priceAsc":  arr.sort((a,b)=>Number(a.price||0)-Number(b.price||0)); break;
-      case "priceDesc": arr.sort((a,b)=>Number(b.price||0)-Number(a.price||0)); break;
+      case "priceAsc": arr.sort((a, b) => Number(a.price || 0) - Number(b.price || 0)); break;
+      case "priceDesc": arr.sort((a, b) => Number(b.price || 0) - Number(a.price || 0)); break;
       case "recent":
       default: {
         const toTime = (p) => p?.createdAt ? new Date(p.createdAt).getTime() : 0;
-        arr.sort((a,b)=>toTime(b)-toTime(a));
+        arr.sort((a, b) => toTime(b) - toTime(a));
       }
     }
     return arr;
@@ -183,61 +183,67 @@ export default function ClientCatalog({ reload }) {
 
   /* ==================== RENDU ==================== */
   return (
-    <div className="product-list-container">
+    <div className="orders-container">
       <ClientNavbar />
-      <style>{forceCss}</style>
-
-      {/* Filtres */}
-      <div className="search-section" role="region" aria-label="Filtres catalogue">
-        <input
-          className="search-input"
-          placeholder="Rechercher un produit…"
-          value={q}
-          onChange={(e) => { setQ(e.target.value); setPage(1); }}
-          onKeyDown={onEnter}
-        />
-        <select
-          className="category-select"
-          value={category}
-          onChange={(e) => { setCategory(e.target.value); setPage(1); }}
-        >
-          <option value="">Toutes catégories</option>
-          {categories.map((c) => (<option key={c} value={c}>{c}</option>))}
-        </select>
-        <select
-          className="category-select"
-          value={sort}
-          onChange={(e) => { setSort(e.target.value); setPage(1); }}
-          aria-label="Trier par"
-        >
-          <option value="recent">Plus récents</option>
-          <option value="priceAsc">Prix croissant</option>
-          <option value="priceDesc">Prix décroissant</option>
-        </select>
-        <button
-          className={`chip ${inStockOnly ? "chip-on" : ""}`}
-          onClick={() => { setInStockOnly(v => !v); setPage(1); }}
-          aria-pressed={inStockOnly}
-        >
-          Stock uniquement
-        </button>
-        <button className="search-button" onClick={() => setPage(1)}>Rechercher</button>
+      <div className="orders-header">
+        <h1>Catalogue Produits</h1>
+        <p>Découvrez notre gamme complète de produits médicaux</p>
       </div>
+      <div className="main-content">
+        <style>{forceCss}</style>
 
-      {/* Recommandations (déjà avec 2 boutons) */}
-      {(recLoading || recommendations.length > 0) && (
-        <section className="recommendations-carousel-section">
-          <div className="recommendations-header">
-            <h2>✨ Nos recommandations pour vous</h2>
-            <p>Produits choisis selon votre activité</p>
+        {/* Filtres */}
+        <div className="search-section" role="region" aria-label="Filtres catalogue">
+          <input
+            className="search-input"
+            placeholder="Rechercher un produit…"
+            value={q}
+            onChange={(e) => { setQ(e.target.value); setPage(1); }}
+            onKeyDown={onEnter}
+          />
+          <div className="filters-row">
+            <select
+              className="category-select"
+              value={category}
+              onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+            >
+              <option value="">Toutes catégories</option>
+              {categories.map((c) => (<option key={c} value={c}>{c}</option>))}
+            </select>
+            <select
+              className="category-select"
+              value={sort}
+              onChange={(e) => { setSort(e.target.value); setPage(1); }}
+              aria-label="Trier par"
+            >
+              <option value="recent">Plus récents</option>
+              <option value="priceAsc">Prix croissant</option>
+              <option value="priceDesc">Prix décroissant</option>
+            </select>
+            <button
+              className={`chip ${inStockOnly ? "chip-on" : ""}`}
+              onClick={() => { setInStockOnly(v => !v); setPage(1); }}
+              aria-pressed={inStockOnly}
+            >
+              Stock uniquement
+            </button>
           </div>
+        </div>
 
-          <div className="recommendations-carousel">
-            <div className="carousel-container">
-              <div className="carousel-track">
-                {recLoading
-                  ? [...Array(4)].map((_, i) => <div className="recommendation-card skeleton" key={i} />)
-                  : recommendations.map((p) => {
+        {/* Recommandations (déjà avec 2 boutons) */}
+        {(recLoading || recommendations.length > 0) && (
+          <section className="recommendations-carousel-section">
+            <div className="recommendations-header">
+              <h2>✨ Nos recommandations pour vous</h2>
+              <p>Produits choisis selon votre activité</p>
+            </div>
+
+            <div className="recommendations-carousel">
+              <div className="carousel-container">
+                <div className="carousel-track">
+                  {recLoading
+                    ? [...Array(4)].map((_, i) => <div className="recommendation-card skeleton" key={i} />)
+                    : recommendations.map((p) => {
                       const out = (p.stock ?? 0) <= 0;
                       return (
                         <article className="recommendation-card" key={p._id}>
@@ -278,17 +284,17 @@ export default function ClientCatalog({ reload }) {
                         </article>
                       );
                     })
-                }
+                  }
+                </div>
               </div>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )}
 
-      {/* Grille produits (chaque carte : Détails + Ajouter au panier) */}
-      <section className="products-grid">
-        {loading
-          ? [...Array(pageSize)].map((_, i) => (
+        {/* Grille produits (chaque carte : Détails + Ajouter au panier) */}
+        <section className="products-grid">
+          {loading
+            ? [...Array(pageSize)].map((_, i) => (
               <div className="product-card" style={CARD_STYLE} key={i}>
                 <div className="product-image-container skeleton" />
                 <div className="product-content" style={CONTENT_STYLE}>
@@ -302,7 +308,7 @@ export default function ClientCatalog({ reload }) {
                 </div>
               </div>
             ))
-          : pageItems.map((p) => {
+            : pageItems.map((p) => {
               const out = (p.stock ?? 0) <= 0;
               return (
                 <article className="product-card" style={CARD_STYLE} key={p._id}>
@@ -343,72 +349,129 @@ export default function ClientCatalog({ reload }) {
                 </article>
               );
             })
-        }
-      </section>
+          }
+        </section>
 
-      {/* Pagination */}
-      <div className="pagination">
-        <button
-          className="pagination-button prev"
-          disabled={page <= 1}
-          onClick={() => setPage(p => p - 1)}
-        >
-          Précédent
-        </button>
-        <span className="pagination-info">Page {page} sur {pages}</span>
-        <button
-          className="pagination-button next"
-          disabled={page >= pages}
-          onClick={() => setPage(p => p + 1)}
-        >
-          Suivant
-        </button>
-        <select
-          className="page-size-select"
-          value={pageSize}
-          onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-        >
-          <option value={5}>5 / page</option>
-          <option value={10}>10 / page</option>
-        </select>
-      </div>
-
-      {/* Modal détails */}
-      {selectedProduct && (
-        <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">{selectedProduct.name}</h2>
-              <button className="modal-close" onClick={() => setSelectedProduct(null)}>×</button>
+        {/* Pagination */}
+        {filteredSorted.length > 0 && (
+          <div className="pagination-container">
+            <div className="pagination-info">
+              <span>
+                Affichage de {((page - 1) * pageSize) + 1} à {Math.min(page * pageSize, filteredSorted.length)} sur {filteredSorted.length} produits
+              </span>
             </div>
-            <div className="modal-body">
-              {selectedProduct.images?.length ? (
-                <img
-                  className="modal-image"
-                  src={`${API_BASE}${selectedProduct.images[0]}`}
-                  alt={selectedProduct.name}
-                />
-              ) : null}
-              <div>
-                <p className="modal-description">{selectedProduct.description}</p>
-                <p><strong>Prix :</strong> {money.format(Number(selectedProduct.price || 0))}</p>
-                <p><strong>Stock :</strong> <span className={`badge-stock ${selectedProduct.stock <= 0 ? "zero" : ""}`}>{selectedProduct.stock}</span></p>
-                <p><strong>Catégorie :</strong> {selectedProduct.category || "Non spécifiée"}</p>
+
+            <div className="pagination-controls">
+              <div className="items-per-page">
+                <label htmlFor="itemsPerPage">Par page:</label>
+                <select
+                  id="itemsPerPage"
+                  value={pageSize}
+                  onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                  className="items-select"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                </select>
+              </div>
+
+              <div className="page-navigation">
+                <button
+                  onClick={() => setPage(1)}
+                  disabled={page === 1}
+                  className="pagination-btn first"
+                >
+                  ««
+                </button>
+                <button
+                  onClick={() => setPage(page - 1)}
+                  disabled={page === 1}
+                  className="pagination-btn prev"
+                >
+                  ‹
+                </button>
+
+                <div className="page-numbers">
+                  {Array.from({ length: Math.min(5, pages) }, (_, i) => {
+                    let pageNum;
+                    if (pages <= 5) {
+                      pageNum = i + 1;
+                    } else if (page <= 3) {
+                      pageNum = i + 1;
+                    } else if (page >= pages - 2) {
+                      pageNum = pages - 4 + i;
+                    } else {
+                      pageNum = page - 2 + i;
+                    }
+
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPage(pageNum)}
+                        className={`pagination-btn page ${page === pageNum ? 'active' : ''}`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => setPage(page + 1)}
+                  disabled={page === pages}
+                  className="pagination-btn next"
+                >
+                  ›
+                </button>
+                <button
+                  onClick={() => setPage(pages)}
+                  disabled={page === pages}
+                  className="pagination-btn last"
+                >
+                  »»
+                </button>
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="modal-button cancel" onClick={() => setSelectedProduct(null)}>Fermer</button>
-              <button
-                style={{ ...BTN.base, ...BTN.blue, ...(selectedProduct.stock <= 0 ? BTN.disabled : {}) }}
-                disabled={selectedProduct.stock <= 0}
-                onClick={() => handleOrder(selectedProduct)}
-              >
-                {selectedProduct.stock <= 0 ? "En rupture" : "Ajouter au panier"}
-              </button>
+          </div>
+        )}
+
+        {/* Modal détails */}
+        {selectedProduct && (
+          <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2 className="modal-title">{selectedProduct.name}</h2>
+                <button className="modal-close" onClick={() => setSelectedProduct(null)}>×</button>
+              </div>
+              <div className="modal-body">
+                {selectedProduct.images?.length ? (
+                  <img
+                    className="modal-image"
+                    src={`${API_BASE}${selectedProduct.images[0]}`}
+                    alt={selectedProduct.name}
+                  />
+                ) : null}
+                <div>
+                  <p className="modal-description">{selectedProduct.description}</p>
+                  <p><strong>Prix :</strong> {money.format(Number(selectedProduct.price || 0))}</p>
+                  <p><strong>Stock :</strong> <span className={`badge-stock ${selectedProduct.stock <= 0 ? "zero" : ""}`}>{selectedProduct.stock}</span></p>
+                  <p><strong>Catégorie :</strong> {selectedProduct.category || "Non spécifiée"}</p>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button className="modal-button cancel" onClick={() => setSelectedProduct(null)}>Fermer</button>
+                <button
+                  style={{ ...BTN.base, ...BTN.blue, ...(selectedProduct.stock <= 0 ? BTN.disabled : {}) }}
+                  disabled={selectedProduct.stock <= 0}
+                  onClick={() => handleOrder(selectedProduct)}
+                >
+                  {selectedProduct.stock <= 0 ? "En rupture" : "Ajouter au panier"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

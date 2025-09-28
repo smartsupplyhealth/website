@@ -149,39 +149,38 @@ export default function ClientInventory() {
   };
 
   return (
-    <div className="inventory-container">
+    <div className="orders-container">
       <ClientNavbar />
-      <header className="inventory-header">
-        <h1 className="title">Gestion de l'Inventaire</h1>
+      <div className="orders-header">
+        <h1>Gestion de l'Inventaire</h1>
         <p>Les produits apparaissent ici automatiquement après la livraison d'une commande.</p>
-        {/* Bouton de test enlevé */}
-      </header>
-
-      <div className="card">
-        <div className="simulation-controls">
-          <h2 className="card-header">Mon Inventaire</h2>
-          <div className="controls-group">
-            <input
-              type="number"
-              min="1"
-              value={days}
-              onChange={e => setDays(Number(e.target.value))}
-              className="field-input"
-              aria-label="Jours pour la simulation"
-            />
-            <button
-              className="action-button info"
-              onClick={simulate}
-              disabled={loading}
-            >
-              Simuler {days} jours
-            </button>
-            {/* Bouton "Vérifier Commande Auto" supprimé */}
+      </div>
+      <div className="main-content">
+        <div className="search-container">
+          <div className="simulation-controls">
+            <h2 className="card-header">Mon Inventaire</h2>
+            <div className="controls-group">
+              <input
+                type="number"
+                min="1"
+                value={days}
+                onChange={e => setDays(Number(e.target.value))}
+                className="field-input"
+                aria-label="Jours pour la simulation"
+              />
+              <button
+                className="action-button info"
+                onClick={simulate}
+                disabled={loading}
+              >
+                Simuler {days} jours
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="table-container">
-          <table className="table">
+        <div className="orders-table-container">
+          <table className="orders-table">
             <thead>
               <tr>
                 <th>Produit</th>
@@ -279,8 +278,8 @@ export default function ClientInventory() {
         {!!simulRows.length && (
           <div className="simulation-results">
             <h3 className="card-header">Résultats de la Simulation ({days} jours)</h3>
-            <div className="table-container">
-              <table className="table">
+            <div className="orders-table-container">
+              <table className="orders-table">
                 <thead>
                   <tr>
                     <th>Produit</th>
@@ -293,10 +292,10 @@ export default function ClientInventory() {
                 <tbody>
                   {simulRows.map(r => {
                     const reorderDate = computeReorderDate(r);
-                    const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
+                    const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
                     const withinWindow =
                       reorderDate &&
-                      (reorderDate.getTime() - startOfToday.getTime()) / (1000*60*60*24) <= days;
+                      (reorderDate.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24) <= days;
 
                     const alertText =
                       reorderDate && withinWindow

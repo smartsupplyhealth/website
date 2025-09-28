@@ -73,7 +73,10 @@ export default function ClientNavbar() {
                 style={{ width: "100%", height: "100%", borderRadius: "0.75rem", objectFit: "cover" }}
               />
             </span>
-            <h1 className="navbar-logo-text">SmartSupply Health</h1>
+            <h1 className="navbar-logo-text">
+              <div>SmartSupply</div>
+              <div>Health</div>
+            </h1>
           </button>
 
           {/* Desktop */}

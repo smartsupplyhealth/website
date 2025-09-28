@@ -6,14 +6,14 @@ import SupplierNavbar from "./dashboard/SupplierNavbar";
 import { API_URL } from '../config/environment';
 
 const formatPrice = (price) =>
-  new Intl.NumberFormat("fr-FR", { style: "currency", currency: "TND" })
+  new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" })
     .format(Number(price || 0));
 
 export default function SupplierClients() {
   const { token } = useAuth();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState("");
+  const [error, setError] = useState("");
   const [q, setQ] = useState("");
   const [sortKey, setSortKey] = useState("totalSpent");
   const [sortDir, setSortDir] = useState("desc"); // "asc" | "desc"
@@ -95,11 +95,11 @@ export default function SupplierClients() {
     let rows = !query
       ? clients
       : clients.filter((c) =>
-          [c.name, c.email, c.clinicName, c.clinicType]
-            .join(" ")
-            .toLowerCase()
-            .includes(query)
-        );
+        [c.name, c.email, c.clinicName, c.clinicType]
+          .join(" ")
+          .toLowerCase()
+          .includes(query)
+      );
 
     rows = [...rows].sort((a, b) => {
       const dir = sortDir === "asc" ? 1 : -1;
@@ -118,80 +118,82 @@ export default function SupplierClients() {
   // KPIs
   const totals = useMemo(() => {
     const totalClients = clients.length;
-    const totalOrders  = clients.reduce((s, c) => s + Number(c.orderCount || 0), 0);
-    const revenue      = clients.reduce((s, c) => s + Number(c.totalSpent || 0), 0);
+    const totalOrders = clients.reduce((s, c) => s + Number(c.orderCount || 0), 0);
+    const revenue = clients.reduce((s, c) => s + Number(c.totalSpent || 0), 0);
     return { totalClients, totalOrders, revenue };
   }, [clients]);
 
   return (
-    <div className="clients-page">
+    <div className="orders-container">
       <SupplierNavbar />
-
-      <header className="clients-hero">
-        <div>
-          <h1>Mes Clients</h1>
-          <p>Aperçu consolidé de vos clients et de leurs dépenses.</p>
-        </div>
-        <div className="clients-toolbar">
-          <div className="search">
+      <div className="orders-header">
+        <h1>Mes Clients</h1>
+        <p>Aperçu consolidé de vos clients et de leurs dépenses.</p>
+      </div>
+      <div className="main-content">
+        <div className="search-container">
+          <div className="search-bar">
+            <div className="search-icon">🔍</div>
             <input
+              type="text"
+              className="search-input"
               placeholder="Rechercher (nom, email, projet)…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               aria-label="Rechercher des clients"
             />
-            <button className="btn ghost" onClick={() => setQ("")} aria-label="Effacer la recherche">
-              ✕
-            </button>
+            {q && (
+              <button className="btn ghost" onClick={() => setQ("")} aria-label="Effacer la recherche">
+                ✕
+              </button>
+            )}
           </div>
           <button className="btn primary" onClick={fetchClients} aria-label="Rafraîchir">
             Rafraîchir
           </button>
         </div>
-      </header>
 
-      {/* KPIs */}
-      <section className="clients-kpis">
-        <div className="kpi-card">
-          <div className="kpi-label">Clients</div>
-          <div className="kpi-value">{totals.totalClients}</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-label">Commandes</div>
-          <div className="kpi-value">{totals.totalOrders}</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-label">Total dépensé</div>
-          <div className="kpi-value">{formatPrice(totals.revenue)}</div>
-        </div>
-      </section>
+        {/* KPIs */}
+        <section className="clients-kpis">
+          <div className="kpi-card">
+            <div className="kpi-label">Clients</div>
+            <div className="kpi-value">{totals.totalClients}</div>
+          </div>
+          <div className="kpi-card">
+            <div className="kpi-label">Commandes</div>
+            <div className="kpi-value">{totals.totalOrders}</div>
+          </div>
+          <div className="kpi-card">
+            <div className="kpi-label">Total dépensé</div>
+            <div className="kpi-value">{formatPrice(totals.revenue)}</div>
+          </div>
+        </section>
 
-      {/* Erreurs / Loading */}
-      {error && (
-        <div className="notice error">
-          <span>{error}</span>
-          <button className="btn ghost" onClick={fetchClients}>Réessayer</button>
-        </div>
-      )}
+        {/* Erreurs / Loading */}
+        {error && (
+          <div className="notice error">
+            <span>{error}</span>
+            <button className="btn ghost" onClick={fetchClients}>Réessayer</button>
+          </div>
+        )}
 
-      {loading ? (
-        <div className="clients-table card">
-          <div className="skeleton-row"></div>
-          <div className="skeleton-row"></div>
-          <div className="skeleton-row"></div>
-        </div>
-      ) : (
-        <>
-          {(!error && filtered.length === 0) ? (
-            <div className="notice empty">
-              <div className="emoji">👥</div>
-              <h3>Aucun résultat</h3>
-              <p>Essayez un autre terme de recherche.</p>
-            </div>
-          ) : (
-            <div className="clients-table card">
-              <div className="table-wrapper">
-                <table>
+        {loading ? (
+          <div className="orders-table-container">
+            <div className="skeleton-row"></div>
+            <div className="skeleton-row"></div>
+            <div className="skeleton-row"></div>
+          </div>
+        ) : (
+          <>
+            {(!error && filtered.length === 0) ? (
+              <div className="notice empty">
+                <div className="emoji">👥</div>
+                <h3>Aucun résultat</h3>
+                <p>Essayez un autre terme de recherche.</p>
+              </div>
+            ) : (
+              <div className="orders-table-container">
+                <table className="orders-table">
                   <thead>
                     <tr>
                       <th onClick={() => toggleSort("name")} className="emph">
@@ -212,7 +214,7 @@ export default function SupplierClients() {
                       <tr key={c._id}>
                         <td data-label="Nom" className="emph">
                           <div className="client-cell">
-                            <div className="avatar">{(c.name || "—").slice(0,1).toUpperCase()}</div>
+                            <div className="avatar">{(c.name || "—").slice(0, 1).toUpperCase()}</div>
                             <div className="client-meta">
                               <div className="client-name">{c.name || "—"}</div>
                               <div className="client-sub">
@@ -231,10 +233,10 @@ export default function SupplierClients() {
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
-        </>
-      )}
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

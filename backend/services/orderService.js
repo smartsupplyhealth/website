@@ -29,7 +29,7 @@ const createOrder = async (orderData) => {
     totalAmount,
     deliveryAddress,
     notes,
-    status: 'confirmed',
+    // status will use the default 'pending' from the model
     paymentStatus: 'Pending',
   });
 

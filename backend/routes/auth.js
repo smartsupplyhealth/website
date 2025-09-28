@@ -85,23 +85,28 @@ router.post('/register', validateRegister, checkValidation, async (req, res) => 
 // @desc    Login user
 // @access  Public
 router.post('/login', validateLogin, checkValidation, async (req, res) => {
-  const { email, password, role } = req.body;
+  const { email, password } = req.body;
 
-  console.log('Login attempt:', email, role);
+  console.log('Login attempt:', email);
 
-  if (!['client', 'supplier'].includes(role)) {
-    return res.status(400).json({ success: false, message: 'Role must be either client or supplier' });
-  }
+  // Check both Client and Supplier collections to determine role
+  let user = null;
+  let role = null;
 
-  let user;
-  if (role === 'client') {
-    user = await Client.findOne({ email });
-  } else if (role === 'supplier') {
+  // First check if user is a client
+  user = await Client.findOne({ email });
+  if (user) {
+    role = 'client';
+  } else {
+    // If not a client, check if user is a supplier
     user = await Supplier.findOne({ email });
+    if (user) {
+      role = 'supplier';
+    }
   }
 
   if (!user) {
-    console.log('User not found');
+    console.log('User not found in any collection');
     return res.status(401).json({ success: false, message: 'Invalid email or password' });
   }
 
@@ -117,7 +122,7 @@ router.post('/login', validateLogin, checkValidation, async (req, res) => {
   }
 
   const token = generateToken(user._id, role);
-  console.log('Login successful for:', email);
+  console.log('Login successful for:', email, 'as', role);
 
   // Dans votre route login, juste avant res.json()
   console.log('Données envoyées au frontend:', { user: user.toObject(), token, role });
@@ -167,6 +172,25 @@ router.put('/profile', auth, async (req, res) => {
     const user = await Model.findById(req.user._id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Vérifier l'ancien mot de passe si on veut changer le mot de passe
+    if (req.body.password) {
+      if (!req.body.currentPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'L\'ancien mot de passe est requis pour changer le mot de passe.'
+        });
+      }
+
+      // Vérifier que l'ancien mot de passe est correct
+      const isOldPasswordValid = await user.comparePassword(req.body.currentPassword);
+      if (!isOldPasswordValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'L\'ancien mot de passe est incorrect.'
+        });
+      }
     }
 
     // Mettre à jour les champs fournis dans la requête
@@ -224,7 +248,7 @@ router.post('/forgot-password', async (req, res) => {
 
     await user.save();
 
-    const subject = 'Your Password Reset Code';
+    const subject = '[SmartSupply Health] Code de réinitialisation de mot de passe';
     const html = `<p>You are receiving this because you (or someone else) have requested the reset of the password for your account.</p>
                   <p>Your verification code is: <strong>${resetToken}</strong></p>
                   <p>This code will expire in 15 minutes.</p>

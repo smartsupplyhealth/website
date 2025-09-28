@@ -26,10 +26,11 @@ const formatPrice = (price) =>
 
 const getStatusBadge = (status) => {
   const statusConfig = {
-    confirmed:  { label: 'Confirmée',     class: 'status-confirmed'  },
+    pending: { label: 'En attente', class: 'status-pending' },
+    confirmed: { label: 'Confirmée', class: 'status-confirmed' },
     processing: { label: 'En traitement', class: 'status-processing' },
-    delivered:  { label: 'Livrée',        class: 'status-delivered'  },
-    cancelled:  { label: 'Annulée',       class: 'status-cancelled'  },
+    delivered: { label: 'Livrée', class: 'status-delivered' },
+    cancelled: { label: 'Annulée', class: 'status-cancelled' },
   };
   const cfg = statusConfig[status] || { label: status || '—', class: 'status-unknown' };
   return <span className={`status-badge ${cfg.class}`}>{cfg.label}</span>;
@@ -43,20 +44,20 @@ const normalizeOrder = (o, idx = 0) => {
 
   const items = Array.isArray(o.items)
     ? o.items.filter(Boolean).map((it, i) => {
-        const prod = it?.product ?? {};
-        const qty = Number(it?.quantity ?? it?.qty ?? 0);
-        const unit = Number(it?.unitPrice ?? it?.price ?? 0);
-        return {
-          _id: it?._id ?? `itm_${idx}_${i}`,
-          quantity: qty,
-          unitPrice: unit,
-          totalPrice: Number(it?.totalPrice ?? qty * unit),
-          product: {
-            name: prod?.name ?? 'Produit inconnu',
-            sku:  prod?.sku  ?? '—',
-          },
-        };
-      })
+      const prod = it?.product ?? {};
+      const qty = Number(it?.quantity ?? it?.qty ?? 0);
+      const unit = Number(it?.unitPrice ?? it?.price ?? 0);
+      return {
+        _id: it?._id ?? `itm_${idx}_${i}`,
+        quantity: qty,
+        unitPrice: unit,
+        totalPrice: Number(it?.totalPrice ?? qty * unit),
+        product: {
+          name: prod?.name ?? 'Produit inconnu',
+          sku: prod?.sku ?? '—',
+        },
+      };
+    })
     : [];
 
   return {
@@ -73,11 +74,11 @@ const normalizeOrder = (o, idx = 0) => {
     },
     deliveryAddress: address
       ? {
-          street: address?.street ?? '—',
-          city: address?.city ?? '—',
-          postalCode: address?.postalCode ?? '—',
-          country: address?.country ?? '—',
-        }
+        street: address?.street ?? '—',
+        city: address?.city ?? '—',
+        postalCode: address?.postalCode ?? '—',
+        country: address?.country ?? '—',
+      }
       : null,
     items,
   };
@@ -89,8 +90,11 @@ export default function SupplierOrders() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -137,6 +141,36 @@ export default function SupplierOrders() {
   }, [filter, token]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
+
+  // Filter orders based on search term
+  const filteredOrders = orders.filter(order => {
+    if (!searchTerm.trim()) return true;
+
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      order.orderNumber?.toLowerCase().includes(searchLower) ||
+      order.client?.name?.toLowerCase().includes(searchLower) ||
+      order.client?.clinicName?.toLowerCase().includes(searchLower) ||
+      order.client?.email?.toLowerCase().includes(searchLower) ||
+      order.items?.some(item =>
+        item.product?.name?.toLowerCase().includes(searchLower)
+      ) ||
+      order.deliveryAddress?.street?.toLowerCase().includes(searchLower) ||
+      order.deliveryAddress?.city?.toLowerCase().includes(searchLower) ||
+      order.notes?.toLowerCase().includes(searchLower)
+    );
+  });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+
+  // Reset to first page when search term or items per page changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, itemsPerPage]);
 
   const updateOrderStatus = async (orderId, newStatus) => {
     if (!window.confirm(`Êtes-vous sûr de vouloir changer le statut à « ${newStatus} » ?`)) return;
@@ -198,119 +232,226 @@ export default function SupplierOrders() {
 
       <div className="orders-header">
         <h1>Commandes</h1>
-        <p>Gérez les commandes</p>
       </div>
 
-      {/* Filtres */}
-      <div className="orders-filters">
-        {[
-          { key: 'all', label: 'Toutes' },
-          { key: 'confirmed', label: 'Confirmées' },
-          { key: 'processing', label: 'En traitement' },
-          { key: 'delivered', label: 'Livrées' },
-          { key: 'cancelled', label: 'Annulées' },
-        ].map(({ key, label }) => (
-          <button
-            key={key}
-            className={`filter-btn ${filter === key ? 'active' : ''}`}
-            onClick={() => setFilter(key)}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="main-content">
+        {/* Search Bar */}
+        <div className="search-container">
+          <div className="search-bar">
+            <input
+              type="text"
+              placeholder="Rechercher par numéro de commande, client, produit, adresse..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+            <div className="search-icon">🔍</div>
+          </div>
+        </div>
+
+        {/* Filtres */}
+        <div className="orders-filters">
+          {[
+            { key: 'all', label: 'Toutes' },
+            { key: 'pending', label: 'En attente' },
+            { key: 'confirmed', label: 'Confirmées' },
+            { key: 'processing', label: 'En traitement' },
+            { key: 'delivered', label: 'Livrées' },
+            { key: 'cancelled', label: 'Annulées' },
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              className={`filter-btn ${filter === key ? 'active' : ''}`}
+              onClick={() => setFilter(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Erreur */}
+        {error && (
+          <div className="error-message">
+            <p>{error}</p>
+            <button onClick={fetchOrders}>Réessayer</button>
+          </div>
+        )}
+
+        {/* Liste des commandes */}
+        {filteredOrders.length === 0 ? (
+          <div className="no-orders">
+            <div className="no-orders-icon">📦</div>
+            <h3>Aucune commande trouvée</h3>
+            <p>
+              {searchTerm.trim()
+                ? `Aucune commande ne correspond à votre recherche "${searchTerm}"`
+                : `Aucune commande ne contient vos produits${filter !== 'all' ? ` avec le statut "${filter}"` : ''}`
+              }
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="orders-table-container">
+              <table className="orders-table">
+                <thead>
+                  <tr>
+                    <th>N° Commande</th>
+                    <th>Client</th>
+                    <th>Date</th>
+                    <th>Produits</th>
+                    <th>Montant Total</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                    <th>Détails</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedOrders.map((order) => (
+                    <tr key={order._id}>
+                      <td><strong>{order.orderNumber || '—'}</strong></td>
+                      <td>
+                        {order.client?.name || 'Client inconnu'} ({order.client?.clinicName || '—'})
+                      </td>
+                      <td>{formatDate(order.createdAt)}</td>
+                      <td>
+                        <div className="order-items-summary">
+                          {Array.isArray(order.items) ? order.items.length : 0} produit
+                          {Array.isArray(order.items) && order.items.length > 1 ? 's' : ''}
+                          <div className="items-preview">
+                            {(order.items?.slice?.(0, 2) ?? []).map((item, index) => (
+                              <span key={item?._id ?? index} className="item-name">
+                                {item?.product?.name || 'Produit inconnu'}
+                                {index < Math.min(order.items?.length ?? 0, 2) - 1 && ', '}
+                              </span>
+                            ))}
+                            {(order.items?.length ?? 0) > 2 && (
+                              <span className="more-items">
+                                +{(order.items?.length ?? 0) - 2} autre
+                                {(order.items?.length ?? 0) > 3 ? 's' : ''}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td><strong>{formatPrice(order.totalAmount)}</strong></td>
+                      <td>{getStatusBadge(order.status)}</td>
+                      <td>
+                        <div className="order-actions">
+                          <select
+                            value={order.status || 'pending'}
+                            onChange={(e) => {
+                              updateOrderStatus(order._id, e.target.value);
+                            }}
+                            className="status-select"
+                            disabled={['delivered', 'cancelled'].includes(order.status)}
+                          >
+                            <option value="pending">En attente</option>
+                            <option value="confirmed">Confirmée</option>
+                            <option value="processing">En traitement</option>
+                            <option value="delivered">Livrée</option>
+                            <option value="cancelled">Annulée</option>
+                          </select>
+                        </div>
+                      </td>
+                      <td>
+                        <button
+                          className="btn-details"
+                          onClick={() => openOrderDetails(order)}
+                        >
+                          Détails
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {filteredOrders.length > 0 && (
+              <div className="pagination-container">
+                <div className="pagination-info">
+                  <span>
+                    Affichage de {startIndex + 1} à {Math.min(endIndex, filteredOrders.length)} sur {filteredOrders.length} commandes
+                  </span>
+                </div>
+
+                <div className="pagination-controls">
+                  <div className="items-per-page">
+                    <label htmlFor="itemsPerPage">Par page:</label>
+                    <select
+                      id="itemsPerPage"
+                      value={itemsPerPage}
+                      onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                      className="items-select"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                    </select>
+                  </div>
+
+                  <div className="page-navigation">
+                    <button
+                      onClick={() => setCurrentPage(1)}
+                      disabled={currentPage === 1}
+                      className="pagination-btn first"
+                    >
+                      ««
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="pagination-btn prev"
+                    >
+                      ‹
+                    </button>
+
+                    <div className="page-numbers">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`pagination-btn page ${currentPage === pageNum ? 'active' : ''}`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="pagination-btn next"
+                    >
+                      ›
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={currentPage === totalPages}
+                      className="pagination-btn last"
+                    >
+                      »»
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
-
-      {/* Erreur */}
-      {error && (
-        <div className="error-message">
-          <p>{error}</p>
-          <button onClick={fetchOrders}>Réessayer</button>
-        </div>
-      )}
-
-      {/* Liste des commandes */}
-      {orders.length === 0 ? (
-        <div className="no-orders">
-          <div className="no-orders-icon">📦</div>
-          <h3>Aucune commande trouvée</h3>
-          <p>
-            Aucune commande ne contient vos produits
-            {filter !== 'all' ? ` avec le statut "${filter}"` : ''}.
-          </p>
-        </div>
-      ) : (
-        <div className="orders-table-container">
-          <table className="orders-table">
-            <thead>
-              <tr>
-                <th>N° Commande</th>
-                <th>Client</th>
-                <th>Date</th>
-                <th>Produits</th>
-                <th>Montant Total</th>
-                <th>Statut</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order) => (
-                <tr key={order._id}>
-                  <td><strong>{order.orderNumber || '—'}</strong></td>
-                  <td>
-                    {order.client?.name || 'Client inconnu'} ({order.client?.clinicName || '—'})
-                  </td>
-                  <td>{formatDate(order.createdAt)}</td>
-                  <td>
-                    <div className="order-items-summary">
-                      {Array.isArray(order.items) ? order.items.length : 0} produit
-                      {Array.isArray(order.items) && order.items.length > 1 ? 's' : ''}
-                      <div className="items-preview">
-                        {(order.items?.slice?.(0, 2) ?? []).map((item, index) => (
-                          <span key={item?._id ?? index} className="item-name">
-                            {item?.product?.name || 'Produit inconnu'}
-                            {index < Math.min(order.items?.length ?? 0, 2) - 1 && ', '}
-                          </span>
-                        ))}
-                        {(order.items?.length ?? 0) > 2 && (
-                          <span className="more-items">
-                            +{(order.items?.length ?? 0) - 2} autre
-                            {(order.items?.length ?? 0) > 3 ? 's' : ''}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td><strong>{formatPrice(order.totalAmount)}</strong></td>
-                  <td>{getStatusBadge(order.status)}</td>
-                  <td>
-                    <div className="order-actions">
-                      <button
-                        className="btn-details"
-                        onClick={() => openOrderDetails(order)}
-                      >
-                        Détails
-                      </button>
-                      <select
-                        value={order.status || 'confirmed'}
-                        onChange={(e) => {
-                          updateOrderStatus(order._id, e.target.value);
-                        }}
-                        className="status-select"
-                        disabled={['delivered', 'cancelled'].includes(order.status)}
-                      >
-                        <option value="confirmed">Confirmée</option>
-                        <option value="processing">En traitement</option>
-                        <option value="delivered">Livrée</option>
-                        <option value="cancelled">Annulée</option>
-                      </select>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
 
       {/* Modal détails de commande */}
       {showModal && selectedOrder && (
@@ -341,12 +482,24 @@ export default function SupplierOrders() {
                   <div className="info-row">
                     <span className="label">Adresse de livraison:</span>
                     <span className="value">
-                      {[
-                        selectedOrder.deliveryAddress?.street,
-                        selectedOrder.deliveryAddress?.city,
-                        selectedOrder.deliveryAddress?.postalCode,
-                        selectedOrder.deliveryAddress?.country,
-                      ].filter(Boolean).join(', ') || '—'}
+                      {(() => {
+                        const address = selectedOrder.deliveryAddress;
+                        const addressParts = [
+                          address?.street,
+                          address?.city,
+                          address?.postalCode,
+                          address?.country
+                        ].filter(part => part && part !== 'N/A' && part.trim() !== '');
+
+                        let displayText = addressParts.length > 0 ? addressParts.join(', ') : 'Adresse non spécifiée';
+
+                        // Add notes after the address if they exist
+                        if (selectedOrder.notes && selectedOrder.notes.trim()) {
+                          displayText += ` - ${selectedOrder.notes}`;
+                        }
+
+                        return displayText;
+                      })()}
                     </span>
                   </div>
                 )}
@@ -387,7 +540,7 @@ export default function SupplierOrders() {
 
             <div className="modal-footer">
               <select
-                value={selectedOrder.status || 'confirmed'}
+                value={selectedOrder.status || 'pending'}
                 onChange={(e) => {
                   updateOrderStatus(selectedOrder._id, e.target.value);
                   closeModal();
@@ -395,6 +548,7 @@ export default function SupplierOrders() {
                 className="status-select"
                 disabled={['delivered', 'cancelled'].includes(selectedOrder.status)}
               >
+                <option value="pending">En attente</option>
                 <option value="confirmed">Confirmée</option>
                 <option value="processing">En traitement</option>
                 <option value="delivered">Livrée</option>

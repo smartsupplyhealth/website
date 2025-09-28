@@ -22,7 +22,10 @@ import ForgotPassword from './components/auth/ForgotPassword';
 import './App.css';
 
 function App() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  console.log('App component - user:', user);
+  console.log('App component - loading:', loading);
 
   return (
     <NotificationProvider>
@@ -36,8 +39,8 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/client-dashboard" element={<ClientDashboard />} />
               <Route path="/supplier-dashboard" element={<SupplierDashboard />} />
-              <Route path="/profileClient" element={ <Profile />} />
-              <Route path="/profileSupp" element={ <SupplierProfile />} />
+              <Route path="/profileClient" element={<Profile />} />
+              <Route path="/profileSupp" element={<SupplierProfile />} />
               <Route path="/" element={<Navigate to="/login" replace />} />
               <Route path="/supplier-dashboard/catalogue" element={<ProductsPage />} />
               <Route path="/client-dashboard/catalog" element={<ClientCatalog />} />
@@ -49,7 +52,7 @@ function App() {
               <Route path="/client-dashboard/payment-methods" element={<ManagePaymentMethods />} />
             </Routes>
           </main>
-          <Chatbot /> 
+          <Chatbot />
         </div>
       </CartProvider>
     </NotificationProvider>
