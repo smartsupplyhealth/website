@@ -78,7 +78,7 @@ const authReducer = (state, action) => {
 
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (state.token) {
@@ -90,15 +90,20 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const loadUser = async () => {
+      console.log('loadUser called, token:', state.token);
       if (state.token) {
         try {
+          console.log('Making request to /api/auth/me');
           const response = await axios.get('http://localhost:5000/api/auth/me');
+          console.log('User data response:', response.data);
           dispatch({ type: 'LOAD_USER', payload: response.data.data.user });
         } catch (error) {
           console.error('Load user error:', error);
+          console.error('Error response:', error.response?.data);
           dispatch({ type: 'LOGOUT' });
         }
       } else {
+        console.log('No token, setting user to null');
         // To prevent screen flicker, we should dispatch something to indicate loading is finished
         dispatch({ type: 'LOAD_USER', payload: null });
       }
@@ -107,24 +112,32 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, [state.token]);
 
-  const login = async (email, password, role) => {
+  const login = async (email, password) => {
     try {
       dispatch({ type: 'LOGIN_START' });
       const res = await axios.post('http://localhost:5000/api/auth/login', {
         email,
-        password,
-        role
+        password
       });
-      const { user, token } = res.data.data;
+      const { user, token, role } = res.data.data;
+      console.log('Login response data:', { user, token, role });
+
       localStorage.setItem('token', token);
       dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
 
       const decoded = jwt_decode(token);
-      if (decoded.role === 'client') {
+      console.log('Decoded token:', decoded);
+      console.log('Role from response:', role);
+      console.log('Role from token:', decoded.role);
+
+      if (role === 'client' || decoded.role === 'client') {
+        console.log('Navigating to client dashboard');
         navigate('/client-dashboard');
-      } else if (decoded.role === 'supplier') {
+      } else if (role === 'supplier' || decoded.role === 'supplier') {
+        console.log('Navigating to supplier dashboard');
         navigate('/supplier-dashboard');
       } else {
+        console.log('Unknown role, navigating to home');
         navigate('/');
       }
 

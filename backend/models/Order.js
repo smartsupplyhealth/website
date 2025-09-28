@@ -23,8 +23,8 @@ const orderSchema = new mongoose.Schema({
   notes: { type: String, default: '' },
   status: {
     type: String,
-    enum: ['confirmed', 'processing', 'delivered', 'cancelled'],
-    default: 'confirmed'
+    enum: ['pending', 'confirmed', 'processing', 'delivered', 'cancelled'],
+    default: 'pending'
   },
   paymentStatus: {
     type: String,
@@ -35,6 +35,13 @@ const orderSchema = new mongoose.Schema({
     method: { type: String },
     transactionId: { type: String },
   },
+  coupon: {
+    code: { type: String },
+    discountAmount: { type: Number, default: 0 },
+    couponId: { type: mongoose.Schema.Types.ObjectId, ref: 'Coupon' }
+  },
+  originalAmount: { type: Number },
+  finalAmount: { type: Number },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

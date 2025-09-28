@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../config/environment';
 import '../style/NewOrder.css';
 import ClientNavbar from './dashboard/ClientNavbar';
 import PaymentModal from './PaymentModal';
@@ -21,7 +22,7 @@ export default function NewOrder() {
   const token = useMemo(() => localStorage.getItem('token'), []);
   const axiosAuth = useMemo(() => {
     return axios.create({
-      baseURL: 'http://localhost:5000',
+      baseURL: API_URL,
       headers: { Authorization: `Bearer ${token}` },
     });
   }, [token]);
@@ -91,8 +92,17 @@ export default function NewOrder() {
         totalAmount,
       };
       const { data: newOrder } = await axiosAuth.post('/api/orders', orderData);
-      setOrderToPay(newOrder);
-      setCheckoutVisible(false);
+
+      // Only set order to pay if payment status is Pending
+      if (newOrder.paymentStatus === 'Pending') {
+        setOrderToPay(newOrder);
+        setCheckoutVisible(false);
+      } else {
+        // If order is already paid (shouldn't happen), show success message
+        notify("Commande créée avec succès!", "success");
+        clearCart();
+        setTimeout(() => navigate('/client-dashboard/orders'), 1500);
+      }
     } catch (e) {
       console.error(e);
       notify("Erreur lors de la création de la commande.", "error");
@@ -102,17 +112,20 @@ export default function NewOrder() {
   };
 
   const handlePaymentSuccess = () => {
-    setLoading(true);
+    console.log('handlePaymentSuccess called in NewOrder component');
+    setLoading(false); // Set loading to false since payment is complete
     setOrderToPay(null);
     clearCart();
     notify("Commande et paiement réussis 🎉", "success");
-    
-    // Check if this manual order unlocks auto orders
+
+    // Navigate immediately to avoid showing intermediate states
+    console.log('Navigating to orders page...');
+    navigate('/client-dashboard/orders');
+
+    // Check if this manual order unlocks auto orders (after navigation)
     setTimeout(() => {
       notify("✅ Commande manuelle confirmée! Vous pouvez maintenant passer des commandes automatiques (max 2/jour).", "info");
-    }, 2000);
-    
-    setTimeout(() => navigate('/client-dashboard/orders'), 1500);
+    }, 1000);
   };
 
   const handlePaymentCancel = () => {
@@ -129,23 +142,18 @@ export default function NewOrder() {
   return (
     <>
       <ClientNavbar />
-
-      <div className="new-order-page">
+      <div className="orders-container">
         <Notification
           message={notification.message}
           type={notification.type}
           onClose={() => setNotification({ message: '', type: '' })}
         />
-
-        <header className="new-order-header">
-          <h1 className="title">Mon Panier</h1>
-          <p className="new-order-subtitle">
-            Vérifiez vos articles puis finalisez votre commande en toute simplicité.
-          </p>
-        </header>
-
-        <div className="new-order-container">
-          <div className="card">
+        <div className="orders-header">
+          <h1>Mon Panier</h1>
+          <p>Vérifiez vos articles puis finalisez votre commande en toute simplicité.</p>
+        </div>
+        <div className="main-content">
+          <div className="profile-card">
             <h2 className="card-header">Votre Commande</h2>
 
             {cart.length === 0 ? (
@@ -164,7 +172,11 @@ export default function NewOrder() {
                       </div>
                       <div className="item-controls">
                         <div className="quantity-controls">
-                          <button className="qty-btn" onClick={() => handleDec(item)}>-</button>
+                          <button
+                            className="qty-btn"
+                            onClick={() => handleDec(item)}
+                            disabled={item.quantity <= 1}
+                          >-</button>
                           <span className="quantity">{item.quantity}</span>
                           <button className="qty-btn" onClick={() => handleInc(item)}>+</button>
                         </div>
@@ -196,60 +208,60 @@ export default function NewOrder() {
             )}
           </div>
         </div>
+      </div>
 
-        {isCheckoutVisible && (
-          <div className="checkout-modal">
-            <div className="checkout-content">
-              <div className="checkout-header">
-                <h2>Finaliser la Commande</h2>
-                <button className="close-btn" onClick={() => setCheckoutVisible(false)}>×</button>
+      {isCheckoutVisible && (
+        <div className="checkout-modal">
+          <div className="checkout-content">
+            <div className="checkout-header">
+              <h2>Finaliser la Commande</h2>
+              <button className="close-btn" onClick={() => setCheckoutVisible(false)}>×</button>
+            </div>
+
+            <div className="delivery-section">
+              <h3>Adresse de Livraison</h3>
+              <form className="address-form">
+                <input
+                  type="text"
+                  placeholder="Adresse complète"
+                  value={deliveryAddress}
+                  onChange={e => setDeliveryAddress(e.target.value)}
+                />
+              </form>
+            </div>
+
+            <div className="notes-section">
+              <h3>Notes de Commande (optionnel)</h3>
+              <textarea
+                placeholder="Instructions spéciales pour la livraison..."
+                value={orderNotes}
+                onChange={(e) => setOrderNotes(e.target.value)}
+              ></textarea>
+            </div>
+
+            <div className="checkout-summary">
+              <div className="checkout-total">
+                <span className="checkout-total-label">Total à Payer</span>
+                <span className="checkout-total-amount">{totalAmount.toFixed(2)} €</span>
               </div>
-
-              <div className="delivery-section">
-                <h3>Adresse de Livraison</h3>
-                <form className="address-form">
-                  <input
-                    type="text"
-                    placeholder="Adresse complète"
-                    value={deliveryAddress}
-                    onChange={e => setDeliveryAddress(e.target.value)}
-                  />
-                </form>
-              </div>
-
-              <div className="notes-section">
-                <h3>Notes de Commande (optionnel)</h3>
-                <textarea
-                  placeholder="Instructions spéciales pour la livraison..."
-                  value={orderNotes}
-                  onChange={(e) => setOrderNotes(e.target.value)}
-                ></textarea>
-              </div>
-
-              <div className="checkout-summary">
-                <div className="checkout-total">
-                  <span className="checkout-total-label">Total à Payer</span>
-                  <span className="checkout-total-amount">{totalAmount.toFixed(2)} €</span>
-                </div>
-                <div className="checkout-actions">
-                  <button className="cancel-btn" onClick={() => setCheckoutVisible(false)}>Annuler</button>
-                  <button className="confirm-order-btn" onClick={handleConfirmOrder} disabled={loading}>
-                    {loading ? "Confirmation..." : "Confirmer et Payer"}
-                  </button>
-                </div>
+              <div className="checkout-actions">
+                <button className="cancel-btn" onClick={() => setCheckoutVisible(false)}>Annuler</button>
+                <button className="confirm-order-btn" onClick={handleConfirmOrder} disabled={loading}>
+                  {loading ? "Confirmation..." : "Confirmer et Payer"}
+                </button>
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {orderToPay && (
-          <PaymentModal
-            order={orderToPay}
-            onPay={handlePaymentSuccess}
-            onCancel={handlePaymentCancel}
-          />
-        )}
-      </div>
+      {orderToPay && (
+        <PaymentModal
+          order={orderToPay}
+          onPaySuccess={handlePaymentSuccess}
+          onCancel={handlePaymentCancel}
+        />
+      )}
     </>
   );
 }

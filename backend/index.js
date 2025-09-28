@@ -19,6 +19,7 @@ const supplierRoutes = require('./routes/supplier');
 const chatbotRoutes = require('./routes/chatbot'); // <-- AJOUTER CETTE LIGNE
 const statisticsRoutes = require('./routes/statisticsRoutes');
 const webhookRoutes = require('./routes/webhook');
+const couponRoutes = require('./routes/coupons');
 const errorHandler = require('./middleware/errorHandler');
 
 // Error handler (doit être APRES les routes)
@@ -38,8 +39,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 /* ------------------------ 2) ROUTES PUBLIQUES ------------------------ */
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
+  res.status(200).json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development'
@@ -65,6 +66,7 @@ app.use('/api/supplier', supplierRoutes);
 app.use('/api/chatbot', chatbotRoutes); // <-- AJOUTER CETTE LIGNE
 app.use('/api/statistics', statisticsRoutes);
 app.use('/api/webhook', webhookRoutes);
+app.use('/api/coupons', couponRoutes);
 
 /* ------------------------ 4) HEALTHCHECK ----------------------------- */
 app.get('/api/health', (req, res) => {

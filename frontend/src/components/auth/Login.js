@@ -7,8 +7,7 @@ import logo from '../../style/logo.jpg';
 const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
-    role: ''
+    password: ''
   });
   const [formErrors, setFormErrors] = useState({});
   const [localError, setLocalError] = useState('');
@@ -52,9 +51,6 @@ const Login = () => {
     const passwordError = validateField('password', formData.password);
     if (passwordError) errors.password = passwordError;
 
-    if (!formData.role) {
-      errors.role = 'Veuillez sélectionner un rôle.';
-    }
     return errors;
   };
 
@@ -68,7 +64,7 @@ const Login = () => {
     }
 
     try {
-      const res = await login(formData.email, formData.password, formData.role);
+      const res = await login(formData.email, formData.password);
       if (!res?.success) {
         setLocalError(res?.error || 'Email ou mot de passe invalide.');
       }
@@ -100,7 +96,10 @@ const Login = () => {
             <div className="auth-logo-icon">
               <img src={logo} className="auth-logo-img" />
             </div>
-            <h1 className="auth-logo-text">SmartSupply Health</h1>
+            <h1 className="auth-logo-text">
+              <div>SmartSupply</div>
+              <div>Health</div>
+            </h1>
           </div>
           <h2 className="auth-title">Connexion</h2>
           <p className="auth-subtitle">Accédez à votre espace personnel</p>
@@ -156,39 +155,6 @@ const Login = () => {
             {formErrors.password && <p className="auth-error-text">{formErrors.password}</p>}
           </div>
 
-          <div className="auth-form-group">
-            <label className="auth-label">Vous êtes :</label>
-            <div className="auth-radio-group">
-              <label className="auth-radio-label">
-                <input
-                  type="radio"
-                  name="role"
-                  value="client"
-                  checked={formData.role === 'client'}
-                  onChange={handleChange}
-                  disabled={loading}
-                  className="auth-radio"
-                />
-                <span className="auth-radio-custom"></span>
-                <span className="auth-radio-text">Client</span>
-              </label>
-
-              <label className="auth-radio-label">
-                <input
-                  type="radio"
-                  name="role"
-                  value="supplier"
-                  checked={formData.role === 'supplier'}
-                  onChange={handleChange}
-                  disabled={loading}
-                  className="auth-radio"
-                />
-                <span className="auth-radio-custom"></span>
-                <span className="auth-radio-text">Fournisseur</span>
-              </label>
-            </div>
-            {formErrors.role && <p className="auth-error-text">{formErrors.role}</p>}
-          </div>
 
           <button
             type="submit"

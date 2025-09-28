@@ -28,7 +28,7 @@ export default function ClientDashboard() {
   const [inventory, setInventory] = useState([]);
   const [invLoading, setInvLoading] = useState(true);
 
-  
+
   // ===== Auto Order Status =====
   const [autoOrderStatus, setAutoOrderStatus] = useState({
     autoOrdersToday: 0,
@@ -144,7 +144,7 @@ export default function ClientDashboard() {
         if (mounted) {
           setStats({ pendingOrders, processingOrders, cancelledOrders, deliveredOrders });
           setOrders([...list].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-          
+
           // Check auto order limits and show notification
           checkAutoOrderLimits(list);
         }
@@ -257,25 +257,13 @@ export default function ClientDashboard() {
 
   /* ----------------------- Rendu ----------------------- */
   return (
-    <div className="dashboard-layout">
+    <div className="orders-container">
       <ClientNavbar />
-
-      <main className="dashboard-main">
-        {/* En-tête */}
-        <header className="page-header">
-          <div className="page-header__title">
-            <h1>Tableau de bord</h1>
-            <p>Bienvenue {user?.name ? `, ${user.name}` : ""} — {clinicLabel}</p>
-          </div>
-          <div className="page-header__actions">
-            <button className="ph-btn" onClick={() => navigate("/client-dashboard/new-order")}>
-              <span>+ Nouvelle commande</span>
-            </button>
-            <button className="ph-btn secondary" onClick={() => navigate("/client-dashboard/catalog")}>
-              Catalogue
-            </button>
-          </div>
-        </header>
+      <div className="orders-header">
+        <h1>Tableau de bord</h1>
+        <p>Bienvenue {user?.name ? `, ${user.name}` : ""} — {clinicLabel}</p>
+      </div>
+      <div className="main-content">
 
         {/* KPI principaux */}
         <section className="stats-grid">
@@ -283,7 +271,7 @@ export default function ClientDashboard() {
             <div className="stat-card-content">
               <div className="stat-card-icon blue">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M8 11v6h8v-6M8 11H6a2 2 0 00-2 2v6a2 2 0 002 2h12a2 2 0 002-2v-6a2 2 0 00-2-2h-2"/></svg>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M8 11v6h8v-6M8 11H6a2 2 0 00-2 2v6a2 2 0 002 2h12a2 2 0 002-2v-6a2 2 0 00-2-2h-2" /></svg>
               </div>
               <div className="stat-card-info">
                 <p className="stat-card-label">Commandes en cours</p>
@@ -295,7 +283,7 @@ export default function ClientDashboard() {
             <div className="stat-card-content">
               <div className="stat-card-icon amber">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3M12 3a9 9 0 100 18 9 9 0 000-18z"/></svg>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3M12 3a9 9 0 100 18 9 9 0 000-18z" /></svg>
               </div>
               <div className="stat-card-info">
                 <p className="stat-card-label">En traitement</p>
@@ -307,7 +295,7 @@ export default function ClientDashboard() {
             <div className="stat-card-content">
               <div className="stat-card-icon red">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </div>
               <div className="stat-card-info">
                 <p className="stat-card-label">Commandes annulées</p>
@@ -319,7 +307,7 @@ export default function ClientDashboard() {
             <div className="stat-card-content">
               <div className="stat-card-icon green">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </div>
               <div className="stat-card-info">
                 <p className="stat-card-label">Commandes livrées</p>
@@ -335,7 +323,7 @@ export default function ClientDashboard() {
             <div className="status-card-content">
               <div className={`status-card-icon ${autoOrderStatus.canPlaceAutoOrder ? 'green' : 'red'}`}>
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div className="status-card-info">
@@ -359,7 +347,7 @@ export default function ClientDashboard() {
         <section className="recent-orders">
           <div className="recent-header">
             <h2>Auto-commandes à venir</h2>
-            <button className="link-btn" onClick={() => navigate("/client-dashboard/inventory")}>Gérer l’inventaire</button>
+            <button className="link-btn" onClick={() => navigate("/client-dashboard/stock")}>Gérer l'inventaire</button>
           </div>
 
           {/* Guide de lecture (ordre demandé) */}
@@ -423,8 +411,7 @@ export default function ClientDashboard() {
             )}
           </div>
         </section>
-
-      </main>
+      </div>
     </div>
   );
 }

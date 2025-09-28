@@ -19,10 +19,10 @@ const Profile = () => {
     confirmPassword: '',
   });
 
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState('');
-  const [errors, setErrors]     = useState({});
-  const [success, setSuccess]   = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
+  const [success, setSuccess] = useState('');
 
   /* Auto clear success toast */
   useEffect(() => {
@@ -36,14 +36,14 @@ const Profile = () => {
   useEffect(() => {
     if (user) {
       setFormData({
-        name:        user.name        || '',
-        email:       user.email       || '',
-        phone:       user.phone       || '',
-        address:     user.address     || '',
-        clinicName:  user.clinicName  || '',
-        clinicType:  user.clinicType  || 'clinic',
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        clinicName: user.clinicName || '',
+        clinicType: user.clinicType || 'clinic',
         currentPassword: '',
-        password:    '',
+        password: '',
         confirmPassword: '',
       });
       setLoading(false);
@@ -65,8 +65,8 @@ const Profile = () => {
         if (value.trim().length < 10) e = "L'adresse doit contenir au moins 10 caractères.";
         break;
       case 'clinicName':
-        if (value.trim().length < 4) e = 'Le nom de la clinique doit contenir au moins 4 caractères.';
-        else if (!/^[a-zA-Z\s]+$/.test(value)) e = 'Le nom de la clinique ne doit contenir que des lettres et des espaces.';
+        if (value.trim().length < 4) e = 'Le nom du projet doit contenir au moins 4 caractères.';
+        else if (!/^[a-zA-Z\s]+$/.test(value)) e = 'Le nom du projet ne doit contenir que des lettres et des espaces.';
         break;
       case 'password':
         if (value && !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/.test(value)) {
@@ -130,8 +130,14 @@ const Profile = () => {
       if (e) { validationErrors[key] = e; invalid = true; }
     });
 
-    // bloc mot de passe (optionnel)
+    // bloc mot de passe (requis si on veut changer)
     if (formData.password || formData.confirmPassword || formData.currentPassword) {
+      // Si on veut changer le mot de passe, l'ancien mot de passe est requis
+      if (!formData.currentPassword) {
+        validationErrors.currentPassword = 'L\'ancien mot de passe est requis pour changer le mot de passe.';
+        invalid = true;
+      }
+
       const list = ['currentPassword', 'password', 'confirmPassword'];
       list.forEach((key) => {
         const e = validateField(key, formData[key], formData);
@@ -186,144 +192,139 @@ const Profile = () => {
   return (
     <>
       <ClientNavbar />
-      <div className="profile-container">
-        <div className="profile-card">
-          <div className="profile-header">
-            <div className="profile-header-icon">{user?.name?.charAt(0)}</div>
-            <div className="profile-header-text">
-              <h2 className="profile-title">Gérer votre profil</h2>
-              <p className="profile-subtitle">
-                Mettez à jour vos informations personnelles et celles de votre clinique.
-              </p>
-            </div>
-          </div>
+      <div className="orders-container">
+        <div className="orders-header">
+          <div className="profile-header-icon">{user?.name?.charAt(0)}</div>
+          <h1>Gérer votre profil</h1>
+          <p>Mettez à jour vos informations personnelles et celles de votre projet.</p>
+        </div>
+        <div className="main-content">
+          <div className="profile-card">
 
-          <form onSubmit={handleSubmit} className="profile-form">
-            {error && <div className="auth-error">{error}</div>}
-            {success && <div className="auth-success">{success}</div>}
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Nom</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className={`form-control ${errors.name ? 'is-invalid' : ''}`}
-                />
-                <div className="error-text">{errors.name}</div>
-              </div>
-              <div className="form-group">
-                <label>Email</label>
-                <input type="email" name="email" value={formData.email} className="form-control" disabled />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Téléphone</label>
-                <input
-                  type="text"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
-                />
-                <div className="error-text">{errors.phone}</div>
-              </div>
-              <div className="form-group">
-                <label>Adresse</label>
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  className={`form-control ${errors.address ? 'is-invalid' : ''}`}
-                />
-                <div className="error-text">{errors.address}</div>
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Nom de la clinique</label>
-                <input
-                  type="text"
-                  name="clinicName"
-                  value={formData.clinicName}
-                  onChange={handleChange}
-                  className={`form-control ${errors.clinicName ? 'is-invalid' : ''}`}
-                />
-                <div className="error-text">{errors.clinicName}</div>
-              </div>
-              <div className="form-group">
-                <label>Type de clinique</label>
-                <select
-                  name="clinicType"
-                  value={formData.clinicType}
-                  onChange={handleChange}
-                  className="form-control"
-                >
-                  <option value="clinic">Clinique</option>
-                  <option value="laboratory">Laboratoire</option>
-                  <option value="medical_office">Cabinet Médical</option>
-                </select>
-              </div>
-            </div>
-
-            <hr className="profile-divider" />
-
-            <div>
-              <h3 className="password-section-title">Changer le mot de passe</h3>
-              <p className="password-section-subtitle">
-                Laissez vide pour conserver votre mot de passe actuel.
-              </p>
+            <form onSubmit={handleSubmit} className="profile-form">
+              {error && <div className="auth-error">{error}</div>}
+              {success && <div className="auth-success">{success}</div>}
 
               <div className="form-row">
                 <div className="form-group">
-                  <label>Ancien mot de passe</label> {/* 👈 nouveau champ */}
+                  <label>Nom</label>
                   <input
-                    type="password"
-                    name="currentPassword"
-                    value={formData.currentPassword}
+                    type="text"
+                    name="name"
+                    value={formData.name}
                     onChange={handleChange}
-                    className={`form-control ${errors.currentPassword ? 'is-invalid' : ''}`}
-                    placeholder="Ancien mot de passe"
+                    className={`form-control ${errors.name ? 'is-invalid' : ''}`}
                   />
-                  <div className="error-text">{errors.currentPassword}</div>
+                  <div className="error-text">{errors.name}</div>
                 </div>
-
                 <div className="form-group">
-                  <label>Nouveau mot de passe</label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    className={`form-control ${errors.password ? 'is-invalid' : ''}`}
-                    placeholder="Nouveau mot de passe"
-                  />
-                  <div className="error-text">{errors.password}</div>
-                </div>
-
-                <div className="form-group">
-                  <label>Confirmer le nouveau mot de passe</label>
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    className={`form-control ${errors.confirmPassword ? 'is-invalid' : ''}`}
-                    placeholder="Confirmer le nouveau mot de passe"
-                  />
-                  <div className="error-text">{errors.confirmPassword}</div>
+                  <label>Email</label>
+                  <input type="email" name="email" value={formData.email} className="form-control" disabled />
                 </div>
               </div>
-            </div>
 
-            <button type="submit" className="profile-button">Mettre à jour le profil</button>
-          </form>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Téléphone</label>
+                  <input
+                    type="text"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
+                  />
+                  <div className="error-text">{errors.phone}</div>
+                </div>
+                <div className="form-group">
+                  <label>Adresse</label>
+                  <input
+                    type="text"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    className={`form-control ${errors.address ? 'is-invalid' : ''}`}
+                  />
+                  <div className="error-text">{errors.address}</div>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Nom du projet</label>
+                  <input
+                    type="text"
+                    name="clinicName"
+                    value={formData.clinicName}
+                    onChange={handleChange}
+                    className={`form-control ${errors.clinicName ? 'is-invalid' : ''}`}
+                  />
+                  <div className="error-text">{errors.clinicName}</div>
+                </div>
+                <div className="form-group">
+                  <label>Type du projet</label>
+                  <select
+                    name="clinicType"
+                    value={formData.clinicType}
+                    onChange={handleChange}
+                    className="form-control"
+                  >
+                    <option value="clinic">Clinique</option>
+                    <option value="laboratory">Laboratoire</option>
+                    <option value="medical_office">Cabinet Médical</option>
+                  </select>
+                </div>
+              </div>
+
+              <hr className="profile-divider" />
+
+              <div>
+                <h3 className="password-section-title">Changer le mot de passe</h3>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Ancien mot de passe</label> {/* 👈 nouveau champ */}
+                    <input
+                      type="password"
+                      name="currentPassword"
+                      value={formData.currentPassword}
+                      onChange={handleChange}
+                      className={`form-control ${errors.currentPassword ? 'is-invalid' : ''}`}
+                      placeholder="Ancien mot de passe"
+                    />
+                    <div className="error-text">{errors.currentPassword}</div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Nouveau mot de passe</label>
+                    <input
+                      type="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className={`form-control ${errors.password ? 'is-invalid' : ''}`}
+                      placeholder="Nouveau mot de passe"
+                    />
+                    <div className="error-text">{errors.password}</div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Confirmer le nouveau mot de passe</label>
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      className={`form-control ${errors.confirmPassword ? 'is-invalid' : ''}`}
+                      placeholder="Confirmer le nouveau mot de passe"
+                    />
+                    <div className="error-text">{errors.confirmPassword}</div>
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" className="profile-button">Mettre à jour le profil</button>
+            </form>
+          </div>
         </div>
       </div>
     </>

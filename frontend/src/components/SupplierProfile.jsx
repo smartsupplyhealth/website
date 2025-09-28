@@ -120,13 +120,19 @@ const SupplierProfile = () => {
       if (err) { validationErrors[key] = err; hasErrors = true; }
     });
 
-    // Si l’utilisateur veut changer le mot de passe → valider les 3 champs mdp
-    if (formData.password) {
+    // Si l'utilisateur veut changer le mot de passe → valider les 3 champs mdp
+    if (formData.password || formData.confirmPassword || formData.currentPassword) {
+      // Si on veut changer le mot de passe, l'ancien mot de passe est requis
+      if (!formData.currentPassword) {
+        validationErrors.currentPassword = 'L\'ancien mot de passe est requis pour changer le mot de passe.';
+        hasErrors = true;
+      }
+
       ['currentPassword', 'password', 'confirmPassword'].forEach((key) => {
         const err = validateField(key, formData[key], formData);
         if (err) { validationErrors[key] = err; hasErrors = true; }
       });
-      if (formData.password !== formData.confirmPassword) {
+      if (formData.password && formData.password !== formData.confirmPassword) {
         validationErrors.confirmPassword = 'Les mots de passe ne correspondent pas.';
         hasErrors = true;
       }
@@ -170,118 +176,113 @@ const SupplierProfile = () => {
   return (
     <>
       <SupplierNavbar />
-      <div className="profile-container">
-        <div className="profile-card">
-          <div className="profile-header">
-            <div className="profile-header-icon">{user?.name?.charAt(0)}</div>
-            <div className="profile-header-text">
-              <h2 className="profile-title">Gérer votre profil</h2>
-              <p className="profile-subtitle">
-                Mettez à jour vos informations personnelles et celles de votre entreprise.
-              </p>
-            </div>
-          </div>
+      <div className="orders-container">
+        <div className="orders-header">
+          <div className="profile-header-icon">{user?.name?.charAt(0)}</div>
+          <h1>Gérer votre profil</h1>
+          <p>Mettez à jour vos informations personnelles et celles de votre entreprise.</p>
+        </div>
+        <div className="main-content">
+          <div className="profile-card">
 
-          <form onSubmit={handleSubmit} className="profile-form">
-            {error && <div className="auth-error">{error}</div>}
-            {success && <div className="auth-success">{success}</div>}
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Nom</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className={`form-control ${errors.name ? 'is-invalid' : ''}`}
-                />
-                <div className="error-text">{errors.name}</div>
-              </div>
-              <div className="form-group">
-                <label>Email</label>
-                <input type="email" name="email" value={formData.email} className="form-control" disabled />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Téléphone</label>
-                <input
-                  type="text"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
-                />
-                <div className="error-text">{errors.phone}</div>
-              </div>
-              <div className="form-group">
-                <label>Nom de l'entreprise</label>
-                <input
-                  type="text"
-                  name="companyName"
-                  value={formData.companyName}
-                  onChange={handleChange}
-                  className={`form-control ${errors.companyName ? 'is-invalid' : ''}`}
-                />
-                <div className="error-text">{errors.companyName}</div>
-              </div>
-            </div>
-
-            <hr className="profile-divider" />
-
-            <div>
-              <h3 className="password-section-title">Changer le mot de passe</h3>
-              <p className="password-section-subtitle">
-                Laissez vide pour conserver votre mot de passe actuel.
-              </p>
+            <form onSubmit={handleSubmit} className="profile-form">
+              {error && <div className="auth-error">{error}</div>}
+              {success && <div className="auth-success">{success}</div>}
 
               <div className="form-row">
-                {/* Mot de passe actuel (exigé seulement si un nouveau mdp est saisi) */}
                 <div className="form-group">
-                  <label>Mot de passe actuel</label>
+                  <label>Nom</label>
                   <input
-                    type="password"
-                    name="currentPassword"
-                    value={formData.currentPassword}
+                    type="text"
+                    name="name"
+                    value={formData.name}
                     onChange={handleChange}
-                    className={`form-control ${errors.currentPassword ? 'is-invalid' : ''}`}
-                    placeholder="Mot de passe actuel"
+                    className={`form-control ${errors.name ? 'is-invalid' : ''}`}
                   />
-                  <div className="error-text">{errors.currentPassword}</div>
+                  <div className="error-text">{errors.name}</div>
                 </div>
-
                 <div className="form-group">
-                  <label>Nouveau mot de passe</label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    className={`form-control ${errors.password ? 'is-invalid' : ''}`}
-                    placeholder="Nouveau mot de passe"
-                  />
-                  <div className="error-text">{errors.password}</div>
-                </div>
-
-                <div className="form-group">
-                  <label>Confirmer le nouveau mot de passe</label>
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    className={`form-control ${errors.confirmPassword ? 'is-invalid' : ''}`}
-                    placeholder="Confirmer le nouveau mot de passe"
-                  />
-                  <div className="error-text">{errors.confirmPassword}</div>
+                  <label>Email</label>
+                  <input type="email" name="email" value={formData.email} className="form-control" disabled />
                 </div>
               </div>
-            </div>
 
-            <button type="submit" className="profile-button">Mettre à jour le profil</button>
-          </form>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Téléphone</label>
+                  <input
+                    type="text"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
+                  />
+                  <div className="error-text">{errors.phone}</div>
+                </div>
+                <div className="form-group">
+                  <label>Nom de l'entreprise</label>
+                  <input
+                    type="text"
+                    name="companyName"
+                    value={formData.companyName}
+                    onChange={handleChange}
+                    className={`form-control ${errors.companyName ? 'is-invalid' : ''}`}
+                  />
+                  <div className="error-text">{errors.companyName}</div>
+                </div>
+              </div>
+
+              <hr className="profile-divider" />
+
+              <div>
+                <h3 className="password-section-title">Changer le mot de passe</h3>
+
+                <div className="form-row">
+                  {/* Mot de passe actuel (exigé seulement si un nouveau mdp est saisi) */}
+                  <div className="form-group">
+                    <label>Mot de passe actuel</label>
+                    <input
+                      type="password"
+                      name="currentPassword"
+                      value={formData.currentPassword}
+                      onChange={handleChange}
+                      className={`form-control ${errors.currentPassword ? 'is-invalid' : ''}`}
+                      placeholder="Mot de passe actuel"
+                    />
+                    <div className="error-text">{errors.currentPassword}</div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Nouveau mot de passe</label>
+                    <input
+                      type="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className={`form-control ${errors.password ? 'is-invalid' : ''}`}
+                      placeholder="Nouveau mot de passe"
+                    />
+                    <div className="error-text">{errors.password}</div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Confirmer le nouveau mot de passe</label>
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      className={`form-control ${errors.confirmPassword ? 'is-invalid' : ''}`}
+                      placeholder="Confirmer le nouveau mot de passe"
+                    />
+                    <div className="error-text">{errors.confirmPassword}</div>
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" className="profile-button">Mettre à jour le profil</button>
+            </form>
+          </div>
         </div>
       </div>
     </>

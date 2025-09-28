@@ -31,16 +31,15 @@ export default function ProductsPage() {
   };
 
   return (
-    <div className="products-page-container">
+    <div className="orders-container">
       <SupplierNavbar />
-      <div className="products-page-header">
+      <div className="orders-header">
         <h1>Catalogue & Stock — Fournisseur</h1>
-        <button onClick={openAddForm} className="add-product-button">
-          <FaPlus /> Ajouter un produit
-        </button>
+        <p>Gérez votre inventaire et vos produits</p>
       </div>
-
-      <ProductList onEdit={openEditForm} reload={reload} />
+      <div className="main-content">
+        <ProductList onEdit={openEditForm} reload={reload} onAdd={openAddForm} />
+      </div>
 
       {showForm && (
         <div

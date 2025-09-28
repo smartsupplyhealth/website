@@ -27,7 +27,7 @@ services:
       - "5001:5000"
     environment:
       NODE_ENV: production
-      MONGODB_URI: mongodb://admin:password123@mongodb:27017/smartsupply?authSource=admin
+      MONGO_URI: mongodb://admin:password123@mongodb:27017/smartsupply?authSource=admin
       JWT_SECRET: your-jwt-secret-here
       PORT: 5000
     depends_on:
@@ -55,6 +55,7 @@ services:
 
 volumes:
   mongodb_data:
+
 
 networks:
   smartsupply-network:

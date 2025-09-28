@@ -28,11 +28,14 @@ const SupplierNavbar = () => {
         <div className="navbar-header">
           {/* Logo */}
           <div className="auth-logo">
-                      <div className="auth-logo-icon"> 
-                     <img src={logo}  className="auth-logo-img" />
-                      </div>
-                      <h1 className="auth-logo-text">SmartSupply Health</h1>
-                    </div>
+            <div className="auth-logo-icon">
+              <img src={logo} className="auth-logo-img" />
+            </div>
+            <h1 className="auth-logo-text">
+              <div>SmartSupply</div>
+              <div>Health</div>
+            </h1>
+          </div>
 
           {/* Desktop Navigation */}
           <div className="navbar-nav-desktop">
@@ -47,7 +50,7 @@ const SupplierNavbar = () => {
                 </button>
               ))}
             </div>
-            
+
             <div className="navbar-user-section">
               <div className="navbar-user-info">
                 <p className="navbar-user-name">{user?.name}</p>

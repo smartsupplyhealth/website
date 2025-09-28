@@ -4,16 +4,18 @@ import axios from 'axios';
 import '../style/ProductList.css';
 import CompetitorModal from './CompetitorModal';
 import PriceSimulationModal from './PriceSimulationModal';
-import { FaEdit, FaBoxOpen, FaTrash, FaSearch, FaChartLine, FaBalanceScale } from 'react-icons/fa';
+import { FaEdit, FaBoxOpen, FaTrash, FaSearch, FaChartLine, FaBalanceScale, FaPlus } from 'react-icons/fa';
 import { NotificationContext } from '../contexts/NotificationContext';
 import { useContext } from 'react';
 
-export default function ProductList({ onEdit, reload }) {
+export default function ProductList({ onEdit, reload, onAdd }) {
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [q, setQ] = useState('');
   const [category, setCategory] = useState('');
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [categories, setCategories] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showCompetitorModal, setShowCompetitorModal] = useState(false);
@@ -83,20 +85,48 @@ export default function ProductList({ onEdit, reload }) {
         throw new Error('No authentication token found');
       }
       const res = await axios.get('http://localhost:5000/api/products/supplier', {
-        params: { q, category: category || undefined, page, limit: 10 },
         headers: { Authorization: `Bearer ${token}` }
       });
       setProducts(res.data.data || []);
-      setPages(res.data.pages || 1);
     } catch (err) {
       console.error('Error fetching products:', err.response?.data?.message || err.message);
       showNotification(`Erreur chargement produits: ${err.response?.data?.message || 'Vérifiez votre connexion ou authentification'}`, 'error');
     }
-  }, [q, category, page, showNotification]);
+  }, [showNotification]);
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts, reload]);
+
+  // Filter and paginate products
+  useEffect(() => {
+    let filtered = [...products];
+
+    // Apply search filter
+    if (q.trim()) {
+      filtered = filtered.filter(product =>
+        product.name.toLowerCase().includes(q.toLowerCase()) ||
+        product.description.toLowerCase().includes(q.toLowerCase()) ||
+        product.category.toLowerCase().includes(q.toLowerCase())
+      );
+    }
+
+    // Apply category filter
+    if (category) {
+      filtered = filtered.filter(product => product.category === category);
+    }
+
+    setFilteredProducts(filtered);
+
+    // Calculate total pages based on filtered results
+    const totalPages = Math.ceil(filtered.length / pageSize);
+    setPages(totalPages);
+
+    // Reset to page 1 if current page is greater than total pages
+    if (page > totalPages && totalPages > 0) {
+      setPage(1);
+    }
+  }, [products, q, category, pageSize, page]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -193,13 +223,13 @@ export default function ProductList({ onEdit, reload }) {
             <option key={cat} value={cat}>{cat}</option>
           ))}
         </select>
-        <button onClick={() => fetchProducts()} className="search-button">
-          <FaSearch /> Rechercher
+        <button onClick={onAdd} className="search-button">
+          <FaPlus /> Ajouter un produit
         </button>
       </div>
 
       <div className="products-grid">
-        {products.map(p => (
+        {filteredProducts.slice((page - 1) * pageSize, page * pageSize).map(p => (
           <div key={p._id} className="product-card">
             <div className="product-image-container">
               {p.images && p.images.length > 0 ? (
@@ -218,15 +248,19 @@ export default function ProductList({ onEdit, reload }) {
             <div className="product-content">
               <h3 className="product-title">{p.name}</h3>
               <p className="product-description">{p.description}</p>
-              <p className="product-price">
-                Prix : {p.price} €
-              </p>
-              <p className="product-stock">
-                Stock : {p.stock}
-              </p>
-              <p className="product-category">
-                Catégorie : {p.category || 'Non spécifiée'}
-              </p>
+              <div className="product-info">
+                <span className="product-price">
+                  Prix : {p.price} €
+                </span>
+                <span className="product-stock">
+                  Stock : {p.stock}
+                </span>
+              </div>
+              <div className="product-category-container">
+                <span className="product-category">
+                  Catégorie : {p.category || 'Non spécifiée'}
+                </span>
+              </div>
             </div>
 
             <div className="product-actions">
@@ -277,25 +311,88 @@ export default function ProductList({ onEdit, reload }) {
         ))}
       </div>
 
-      <div className="pagination">
-        <button
-          disabled={page <= 1}
-          onClick={() => setPage(page - 1)}
-          className="pagination-button prev"
-        >
-          Précédent
-        </button>
-        <span className="pagination-info">
-          Page {page} sur {pages}
-        </span>
-        <button
-          disabled={page >= pages}
-          onClick={() => setPage(page + 1)}
-          className="pagination-button next"
-        >
-          Suivant
-        </button>
-      </div>
+      {/* Pagination */}
+      {filteredProducts.length > 0 && (
+        <div className="pagination-container">
+          <div className="pagination-info">
+            <span>
+              Affichage de {((page - 1) * pageSize) + 1} à {Math.min(page * pageSize, filteredProducts.length)} sur {filteredProducts.length} produits
+            </span>
+          </div>
+
+          <div className="pagination-controls">
+            <div className="items-per-page">
+              <label htmlFor="itemsPerPage">Par page:</label>
+              <select
+                id="itemsPerPage"
+                value={pageSize}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                className="items-select"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+              </select>
+            </div>
+
+            <div className="page-navigation">
+              <button
+                onClick={() => setPage(1)}
+                disabled={page === 1}
+                className="pagination-btn first"
+              >
+                ««
+              </button>
+              <button
+                onClick={() => setPage(page - 1)}
+                disabled={page === 1}
+                className="pagination-btn prev"
+              >
+                ‹
+              </button>
+
+              <div className="page-numbers">
+                {Array.from({ length: Math.min(5, pages) }, (_, i) => {
+                  let pageNum;
+                  if (pages <= 5) {
+                    pageNum = i + 1;
+                  } else if (page <= 3) {
+                    pageNum = i + 1;
+                  } else if (page >= pages - 2) {
+                    pageNum = pages - 4 + i;
+                  } else {
+                    pageNum = page - 2 + i;
+                  }
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setPage(pageNum)}
+                      className={`pagination-btn page ${page === pageNum ? 'active' : ''}`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setPage(page + 1)}
+                disabled={page === pages}
+                className="pagination-btn next"
+              >
+                ›
+              </button>
+              <button
+                onClick={() => setPage(pages)}
+                disabled={page === pages}
+                className="pagination-btn last"
+              >
+                »»
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <StockAdjustModal
         product={selectedProduct}

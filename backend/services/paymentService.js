@@ -10,7 +10,7 @@ const createAndPayAutoOrder = async (clientId) => {
   const validClientId = new mongoose.Types.ObjectId(clientId);
 
   const inventoryItems = await ClientInventory.find({ client: validClientId, 'autoOrder.enabled': true }).populate('product');
-  
+
   const itemsToOrderRaw = inventoryItems.filter(item => item.currentStock <= item.reorderPoint && item.reorderQty > 0);
 
   if (itemsToOrderRaw.length === 0) {
@@ -45,12 +45,12 @@ const createAndPayAutoOrder = async (clientId) => {
   }
 
   const totalAmount = orderProducts.reduce((sum, p) => sum + p.totalPrice, 0);
-  
+
   const client = await Client.findById(validClientId);
   if (!client) {
     return { success: false, message: 'Client not found.' };
   }
-  
+
   const deliveryAddress = {
     street: client.address || 'N/A',
     city: 'N/A',
@@ -65,12 +65,12 @@ const createAndPayAutoOrder = async (clientId) => {
     totalAmount,
     deliveryAddress,
     notes: 'Commande automatique générée par le système.',
-    status: 'confirmed',
+    // status will use the default 'pending' from the model
     paymentStatus: 'Pending',
   });
-  
+
   await order.save();
-  
+
   // Ensure order has an _id after saving
   if (!order._id) {
     return { success: false, message: 'Failed to create order.' };
@@ -79,16 +79,16 @@ const createAndPayAutoOrder = async (clientId) => {
   // --- Stripe Payment Logic ---
   try {
     if (!client || !client.stripeCustomerId) {
-        throw new Error('Client is not configured for Stripe payments.');
+      throw new Error('Client is not configured for Stripe payments.');
     }
 
     const paymentMethods = await stripe.paymentMethods.list({
-        customer: client.stripeCustomerId,
-        type: 'card',
+      customer: client.stripeCustomerId,
+      type: 'card',
     });
 
     if (paymentMethods.data.length === 0) {
-        throw new Error('No saved payment method found for this client.');
+      throw new Error('No saved payment method found for this client.');
     }
     const paymentMethodId = paymentMethods.data[0].id;
 
@@ -120,8 +120,8 @@ const createAndPayAutoOrder = async (clientId) => {
         return `<li>${productName} (Quantité: ${item.quantity})</li>`;
       }).join('');
 
-      const adjustmentHtml = adjustmentNotes.length > 0 
-        ? `<h3>Notes importantes :</h3><p>${adjustmentNotes.join('<br>')}</p>` 
+      const adjustmentHtml = adjustmentNotes.length > 0
+        ? `<h3>Notes importantes :</h3><p>${adjustmentNotes.join('<br>')}</p>`
         : '';
 
       const emailHtml = `
@@ -148,7 +148,7 @@ const createAndPayAutoOrder = async (clientId) => {
       orderId: order._id,
       clientId: validClientId
     });
-    
+
     order.paymentStatus = 'Failed';
     order.notes += ` Automatic payment failed: ${error.message}`;
     await order.save();

@@ -1,0 +1,17 @@
+[
+    {
+        "name": "MONGODB_URI",
+        "value": "mongodb+srv://essayedneder0798_db_user:monia.0307@smartsupply-db.20el4bx.mongodb.net/smartsupply-db?retryWrites=true&w=majority&appName=smartsupply-db",
+        "slotSetting": false
+    },
+    {
+        "name": "NODE_ENV",
+        "value": "production",
+        "slotSetting": false
+    },
+    {
+        "name": "PORT",
+        "value": "5000",
+        "slotSetting": false
+    }
+]
