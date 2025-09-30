@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { CartProvider } from './contexts/CartContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { useAuth } from './contexts/AuthContext';
+import Favicon from './components/Favicon';
 import Register from './components/auth/Register';
 import SupplierDashboard from './components/dashboard/SupplierDashboard';
 import Login from './components/auth/Login';
@@ -29,6 +30,7 @@ function App() {
 
   return (
     <NotificationProvider>
+      <Favicon />
       <CartProvider>
         <div className="app-container">
           <main className="main-content">

@@ -1,9 +1,11 @@
 // src/components/SupplierOrders.jsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../contexts/NotificationContext';
 import '../style/Orders.css';
 import SupplierNavbar from './dashboard/SupplierNavbar';
-
+import NotificationButton from './NotificationButton';
+import NotificationPanel from './NotificationPanel';
 import { API_URL } from '../config/environment';
 
 /* ===== Helpers d'affichage ===== */
@@ -86,6 +88,7 @@ const normalizeOrder = (o, idx = 0) => {
 
 export default function SupplierOrders() {
   const { token } = useAuth();
+  const { showNotification } = useNotifications();
   const [orders, setOrders] = useState([]);        // jamais null
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -94,7 +97,8 @@ export default function SupplierOrders() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(8);
+  const [confirmationModal, setConfirmationModal] = useState({ show: false, orderId: null, newStatus: null });
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -103,8 +107,8 @@ export default function SupplierOrders() {
 
       const url =
         filter === 'all'
-          ? `${API_URL}/api/orders`
-          : `${API_URL}/api/orders?status=${encodeURIComponent(filter)}`;
+          ? `${API_URL}/api/supplier/orders`
+          : `${API_URL}/api/supplier/orders?status=${encodeURIComponent(filter)}`;
 
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
@@ -173,7 +177,12 @@ export default function SupplierOrders() {
   }, [searchTerm, itemsPerPage]);
 
   const updateOrderStatus = async (orderId, newStatus) => {
-    if (!window.confirm(`Êtes-vous sûr de vouloir changer le statut à « ${newStatus} » ?`)) return;
+    setConfirmationModal({ show: true, orderId, newStatus });
+  };
+
+  const confirmStatusUpdate = async () => {
+    const { orderId, newStatus } = confirmationModal;
+    setConfirmationModal({ show: false, orderId: null, newStatus: null });
 
     try {
       const res = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
@@ -189,19 +198,19 @@ export default function SupplierOrders() {
       try {
         payload = await res.json();
       } catch {
-        alert(`Erreur serveur: réponse non-JSON (statut ${res.status})`);
+        showNotification(`Erreur serveur: réponse non-JSON (statut ${res.status})`, 'error');
         return;
       }
 
       if (!res.ok || payload?.success === false) {
-        alert(payload?.message || `Erreur HTTP ${res.status}`);
+        showNotification(payload?.message || `Erreur HTTP ${res.status}`, 'error');
         return;
       }
 
-      alert('Statut de la commande mis à jour avec succès');
+      showNotification('Statut de la commande mis à jour avec succès', 'success');
       fetchOrders();
     } catch {
-      alert('Erreur de connexion au serveur');
+      showNotification('Erreur de connexion au serveur', 'error');
     }
   };
 
@@ -218,6 +227,8 @@ export default function SupplierOrders() {
     return (
       <div className="orders-container">
         <SupplierNavbar />
+        <NotificationButton />
+        <NotificationPanel />
         <div className="loading-spinner">
           <div className="spinner" />
           <p>Chargement des commandes...</p>
@@ -229,9 +240,12 @@ export default function SupplierOrders() {
   return (
     <div className="orders-container">
       <SupplierNavbar />
+      <NotificationButton />
+      <NotificationPanel />
 
       <div className="orders-header">
         <h1>Commandes</h1>
+        <div className="header-divider"></div>
       </div>
 
       <div className="main-content">
@@ -358,6 +372,13 @@ export default function SupplierOrders() {
                           className="btn-details"
                           onClick={() => openOrderDetails(order)}
                         >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14,2 14,8 20,8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                            <polyline points="10,9 9,9 8,9" />
+                          </svg>
                           Détails
                         </button>
                       </td>
@@ -385,8 +406,9 @@ export default function SupplierOrders() {
                       onChange={(e) => setItemsPerPage(Number(e.target.value))}
                       className="items-select"
                     >
-                      <option value={5}>5</option>
-                      <option value={10}>10</option>
+                      <option value={4}>4</option>
+                      <option value={8}>8</option>
+                      <option value={12}>12</option>
                     </select>
                   </div>
 
@@ -555,6 +577,34 @@ export default function SupplierOrders() {
                 <option value="cancelled">Annulée</option>
               </select>
               <button className="btn-close" onClick={closeModal}>Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmationModal.show && (
+        <div className="modal-overlay">
+          <div className="modal-content confirmation-modal">
+            <div className="modal-header">
+              <h3 className="modal-title">Confirmer le changement de statut</h3>
+            </div>
+            <div className="modal-body">
+              <p>Êtes-vous sûr de vouloir changer le statut à <strong>« {confirmationModal.newStatus} »</strong> ?</p>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn-cancel"
+                onClick={() => setConfirmationModal({ show: false, orderId: null, newStatus: null })}
+              >
+                Annuler
+              </button>
+              <button
+                className="btn-confirm"
+                onClick={confirmStatusUpdate}
+              >
+                Confirmer
+              </button>
             </div>
           </div>
         </div>

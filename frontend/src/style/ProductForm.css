@@ -25,11 +25,10 @@
 /* Container */
 .product-form-container {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  min-height: 100vh;
-  padding: 24px;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  min-height: 100%;
+  padding: 0;
+  width: 100%;
+  display: block;
 }
 
 /* Form Card */
@@ -38,8 +37,8 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--card-border);
-  padding: 32px;
-  max-width: 800px;
+  padding: 24px;
+  max-width: none;
   width: 100%;
   position: relative;
   overflow: hidden;
@@ -55,39 +54,11 @@
   background: var(--primary-gradient);
 }
 
-/* Header */
-.form-header {
-  margin-bottom: 32px;
-  text-align: center;
-}
-
-.form-title {
-  font-size: 28px;
-  font-weight: 800;
-  margin: 0;
-  background: var(--primary-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.form-title.create {
-  background: var(--success-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.form-title.edit {
-  background: var(--warning-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
+/* Header - Removed */
 
 /* Form Fields */
 .form-field {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .field-label {
@@ -98,6 +69,8 @@
   font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  visibility: visible;
+  opacity: 1;
 }
 
 .field-input,
@@ -236,28 +209,21 @@
 
 /* Dynamic Sections */
 .dynamic-section {
-  margin: 24px 0;
-  padding: 20px;
+  margin: 16px 0;
+  padding: 16px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: var(--radius);
 }
 
-.dynamic-section-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 16px 0;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #e2e8f0;
-}
+/* Dynamic section title now uses field-label class */
 
 .dynamic-item {
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  margin-bottom: 16px;
-  padding: 16px;
+  margin-bottom: 12px;
+  padding: 12px;
   background: #f8fafc;
   border-radius: var(--radius);
   border: 1px solid #e2e8f0;
@@ -291,14 +257,15 @@
 }
 
 .add-btn {
-  background: var(--success-gradient);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   color: white;
-  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
 }
 
 .add-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
 }
 
 .remove-btn {
@@ -376,6 +343,24 @@
   display: inline-block;
 }
 
+/* Submit Button Container */
+.submit-button-container {
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.submit-button-bottom {
+  margin-top: 24px;
+  margin-bottom: 0;
+  padding-top: 20px;
+  border-top: 2px solid #e2e8f0;
+  background: #f8fafc;
+  padding: 20px;
+  margin-left: -24px;
+  margin-right: -24px;
+  border-radius: 0 0 16px 16px;
+}
+
 /* Submit Button */
 .submit-button {
   width: 100%;
@@ -391,18 +376,64 @@
   letter-spacing: 0.5px;
   position: relative;
   overflow: hidden;
+  max-width: 300px;
+  margin: 0 auto;
+  display: block;
+  visibility: visible;
+  opacity: 1;
 }
 
 .submit-button.create {
-  background: var(--success-gradient);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   background-size: 200% 200%;
   animation: gradientShift 3s ease infinite;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.submit-button.create::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.submit-button.create:hover::before {
+  left: 100%;
 }
 
 .submit-button.edit {
-  background: var(--warning-gradient);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   background-size: 200% 200%;
   animation: gradientShift 3s ease infinite;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.submit-button.edit::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.submit-button.edit:hover::before {
+  left: 100%;
+}
+
+.submit-button.edit:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
 }
 
 .submit-button:hover {
@@ -494,5 +525,6 @@
   .submit-button {
     padding: 14px 20px;
     font-size: 16px;
+    max-width: 250px;
   }
 }

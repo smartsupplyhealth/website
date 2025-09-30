@@ -31,19 +31,19 @@
 }
 
 .orders-header h1 {
-  font-size: 2.5rem;
+  color: white;
+  font-size: 2.8rem;
   font-weight: 800;
-  margin: 0 0 10px 0;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 12px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   position: relative;
   z-index: 1;
 }
 
 .orders-header p {
-  font-size: 1.1rem;
-  margin: 0;
-  opacity: 0.95;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.2rem;
+  font-weight: 300;
   position: relative;
   z-index: 1;
 }
@@ -174,6 +174,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .quantity-controls {
@@ -219,6 +220,47 @@
   color: #1e293b;
   min-width: 24px;
   text-align: center;
+}
+
+.quantity-input {
+  width: 60px;
+  height: 32px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  color: #1e293b;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.quantity-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.quantity-input:invalid {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.stock-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.max-stock {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
 }
 
 .item-total {
@@ -601,6 +643,24 @@
 
   .item-controls {
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .quantity-controls {
+    order: 1;
+  }
+
+  .stock-info {
+    order: 2;
+  }
+
+  .item-total {
+    order: 3;
+  }
+
+  .remove-btn {
+    order: 4;
   }
 
   .cart-actions {
@@ -655,6 +715,17 @@
 
   .item-info p {
     font-size: 14px;
+  }
+
+  .quantity-input {
+    width: 50px;
+    height: 28px;
+    font-size: 14px;
+  }
+
+  .max-stock {
+    font-size: 10px;
+    padding: 1px 6px;
   }
 
   .total-amount {

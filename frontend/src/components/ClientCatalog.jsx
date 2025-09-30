@@ -4,6 +4,10 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { CartContext } from "../contexts/CartContext";
 import ClientNavbar from "./dashboard/ClientNavbar";
+import { FaShoppingCart, FaEye } from 'react-icons/fa';
+import AIAssistantModal from './AIAssistantModal';
+import NotificationButton from './NotificationButton';
+import NotificationPanel from './NotificationPanel';
 import "../style/ProductList.css";
 
 const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:5000";
@@ -23,9 +27,26 @@ const BTN = {
     cursor: "pointer",
     boxShadow: "0 10px 20px rgba(17,24,39,.2)",
     flex: "1 1 0",
+    transition: "all 0.3s ease",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "6px",
   },
-  green: { background: "#10b981" },
-  blue: { background: "#2563eb" },
+  green: {
+    background: "#10b981",
+    "&:hover": {
+      transform: "translateY(-2px)",
+      boxShadow: "0 15px 30px rgba(16, 185, 129, 0.4)",
+    }
+  },
+  blue: {
+    background: "#2563eb",
+    "&:hover": {
+      transform: "translateY(-2px)",
+      boxShadow: "0 15px 30px rgba(37, 99, 235, 0.4)",
+    }
+  },
   disabled: { opacity: .5, cursor: "not-allowed" },
 };
 
@@ -41,11 +62,13 @@ export default function ClientCatalog({ reload }) {
 
   // pagination
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);   // défaut 10, choix 5/10
+  const [pageSize, setPageSize] = useState(8);   // défaut 8, choix 4/8/12
   const [pages, setPages] = useState(1);
 
   const [categories, setCategories] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [showAIAssistant, setShowAIAssistant] = useState(null);
+  // Store all products for similar product lookup
 
   // recommandations
   const [recommendations, setRecommendations] = useState([]);
@@ -54,6 +77,11 @@ export default function ClientCatalog({ reload }) {
 
   const navigate = useNavigate();
   const { addToCart } = useContext(CartContext);
+
+  // Simple notification function
+  const notify = (message, type = 'info') => {
+    alert(message); // Simple alert for now, you can replace with a proper notification component
+  };
 
   // --- CSS embarqué pour forcer l’affichage des boutons (si une règle externe les masque)
   const forceCss = `
@@ -176,6 +204,12 @@ export default function ClientCatalog({ reload }) {
 
   /* ==================== HELPERS ==================== */
   const handleOrder = (p) => { addToCart(p); navigate("/client-dashboard/new-order"); };
+
+
+
+
+
+
   const onEnter = (e) => { if (e.key === "Enter") setPage(1); };
   const StockBadge = ({ value }) => (
     <span className={`badge-stock ${Number(value) <= 0 ? "zero" : ""}`}>{value}</span>
@@ -185,6 +219,8 @@ export default function ClientCatalog({ reload }) {
   return (
     <div className="orders-container">
       <ClientNavbar />
+      <NotificationButton />
+      <NotificationPanel />
       <div className="orders-header">
         <h1>Catalogue Produits</h1>
         <p>Découvrez notre gamme complète de produits médicaux</p>
@@ -230,62 +266,105 @@ export default function ClientCatalog({ reload }) {
           </div>
         </div>
 
-        {/* Recommandations (déjà avec 2 boutons) */}
+        {/* Recommandations - Design amélioré */}
         {(recLoading || recommendations.length > 0) && (
-          <section className="recommendations-carousel-section">
+          <section className="recommendations-section">
             <div className="recommendations-header">
-              <h2>✨ Nos recommandations pour vous</h2>
-              <p>Produits choisis selon votre activité</p>
+              <div className="recommendations-title-container">
+                <div className="recommendations-icon">✨</div>
+                <h2 className="recommendations-title">Nos recommandations pour vous</h2>
+              </div>
+              <p className="recommendations-subtitle">
+                Produits choisis selon votre activité et vos préférences
+              </p>
             </div>
 
-            <div className="recommendations-carousel">
-              <div className="carousel-container">
-                <div className="carousel-track">
-                  {recLoading
-                    ? [...Array(4)].map((_, i) => <div className="recommendation-card skeleton" key={i} />)
-                    : recommendations.map((p) => {
-                      const out = (p.stock ?? 0) <= 0;
-                      return (
-                        <article className="recommendation-card" key={p._id}>
-                          <div className="rec-image-container">
-                            {p.images?.length
-                              ? <img className="rec-image" src={`${API_BASE}${p.images[0]}`} alt={p.name} />
-                              : <div className="rec-image-placeholder">📦</div>}
-                            <div className="rec-card-badge"><span>Recommandé</span></div>
+            <div className="recommendations-container">
+              <div className="recommendations-grid">
+                {recLoading
+                  ? [...Array(4)].map((_, i) => (
+                    <div className="recommendation-card skeleton-card" key={i}>
+                      <div className="recommendation-image-container skeleton" />
+                      <div className="recommendation-content">
+                        <div className="recommendation-category skeleton skeleton-text" />
+                        <div className="recommendation-title skeleton skeleton-text" />
+                        <div className="recommendation-description skeleton skeleton-text" />
+                        <div className="recommendation-info">
+                          <div className="recommendation-price skeleton skeleton-text" />
+                          <div className="recommendation-stock skeleton skeleton-text" />
+                        </div>
+                      </div>
+                      <div className="recommendation-actions">
+                        <div className="recommendation-btn skeleton skeleton-btn" />
+                        <div className="recommendation-btn skeleton skeleton-btn" />
+                      </div>
+                    </div>
+                  ))
+                  : recommendations.map((p) => {
+                    const out = (p.stock ?? 0) <= 0;
+                    return (
+                      <article className="recommendation-card" key={p._id}>
+                        <div className="recommendation-image-container">
+                          {p.images?.length ? (
+                            <img
+                              className="recommendation-image"
+                              src={`${API_BASE}${p.images[0]}`}
+                              alt={p.name}
+                            />
+                          ) : (
+                            <div className="recommendation-image-placeholder">
+                              <span>📦</span>
+                            </div>
+                          )}
+                          <div className="recommendation-badge">
+                            <span>⭐ Recommandé</span>
                           </div>
+                        </div>
 
-                          <div className="rec-content">
-                            <div className="rec-category-tag">{p.category || "Produit"}</div>
-                            <h3 className="rec-title">{p.name}</h3>
-                            <p className="rec-description">
-                              {p.description?.length > 70 ? p.description.slice(0, 70) + "…" : p.description}
-                            </p>
+                        <div className="recommendation-content">
+                          <div className="recommendation-category">
+                            {p.category || "Produit"}
+                          </div>
+                          <h3 className="recommendation-title">{p.name}</h3>
+                          <p className="recommendation-description">
+                            {p.description?.length > 100 ? p.description.slice(0, 100) + "…" : p.description || "Description non disponible"}
+                          </p>
 
-                            <div className="rec-info">
-                              <span className="rec-price">{money.format(Number(p.price || 0))}</span>
-                              <span className="rec-stock">
-                                Stock : <StockBadge value={p.stock} />
+                          <div className="recommendation-info">
+                            <div className="recommendation-price">
+                              <span className="price-label">Prix</span>
+                              <span className="price-value">{money.format(Number(p.price || 0))}</span>
+                            </div>
+                            <div className="recommendation-stock">
+                              <span className="stock-label">Stock</span>
+                              <span className={`stock-value ${(p.stock ?? 0) <= 0 ? "zero" : ""}`}>
+                                {p.stock ?? 0}
                               </span>
                             </div>
-
-                            <div className="rec-actions">
-                              <button
-                                className={`rec-add-btn ${out ? "disabled" : ""}`}
-                                disabled={out}
-                                onClick={() => handleOrder(p)}
-                              >
-                                🛒 Ajouter au panier
-                              </button>
-                              <button className="rec-details-btn" onClick={() => setSelectedProduct(p)}>
-                                Détails
-                              </button>
-                            </div>
                           </div>
-                        </article>
-                      );
-                    })
-                  }
-                </div>
+                        </div>
+
+                        <div className="recommendation-actions">
+                          <button
+                            className="recommendation-btn details-btn"
+                            onClick={() => setSelectedProduct(p)}
+                          >
+                            <FaEye />
+                            Détails
+                          </button>
+                          <button
+                            className={`recommendation-btn cart-btn ${out ? "disabled" : ""}`}
+                            disabled={out}
+                            onClick={() => handleOrder(p)}
+                          >
+                            <FaShoppingCart />
+                            {out ? "Rupture" : "Au panier"}
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })
+                }
               </div>
             </div>
           </section>
@@ -336,6 +415,7 @@ export default function ClientCatalog({ reload }) {
                       style={{ ...BTN.base, ...BTN.green }}
                       onClick={() => setSelectedProduct(p)}
                     >
+                      <FaEye />
                       Détails
                     </button>
                     <button
@@ -343,6 +423,7 @@ export default function ClientCatalog({ reload }) {
                       disabled={out}
                       onClick={() => handleOrder(p)}
                     >
+                      <FaShoppingCart />
                       {out ? "En rupture" : "Ajouter au panier"}
                     </button>
                   </div>
@@ -370,8 +451,9 @@ export default function ClientCatalog({ reload }) {
                   onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
                   className="items-select"
                 >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
+                  <option value={4}>4</option>
+                  <option value={8}>8</option>
+                  <option value={12}>12</option>
                 </select>
               </div>
 
@@ -450,16 +532,28 @@ export default function ClientCatalog({ reload }) {
                     src={`${API_BASE}${selectedProduct.images[0]}`}
                     alt={selectedProduct.name}
                   />
-                ) : null}
-                <div>
-                  <p className="modal-description">{selectedProduct.description}</p>
+                ) : (
+                  <div className="modal-image" style={{
+                    background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '48px',
+                    color: '#9ca3af'
+                  }}>
+                    📦
+                  </div>
+                )}
+                <div className="modal-info">
+                  <p className="modal-description">
+                    {selectedProduct.description || "Aucune description disponible pour ce produit."}
+                  </p>
                   <p><strong>Prix :</strong> {money.format(Number(selectedProduct.price || 0))}</p>
                   <p><strong>Stock :</strong> <span className={`badge-stock ${selectedProduct.stock <= 0 ? "zero" : ""}`}>{selectedProduct.stock}</span></p>
                   <p><strong>Catégorie :</strong> {selectedProduct.category || "Non spécifiée"}</p>
                 </div>
               </div>
               <div className="modal-footer">
-                <button className="modal-button cancel" onClick={() => setSelectedProduct(null)}>Fermer</button>
                 <button
                   style={{ ...BTN.base, ...BTN.blue, ...(selectedProduct.stock <= 0 ? BTN.disabled : {}) }}
                   disabled={selectedProduct.stock <= 0}
@@ -467,10 +561,36 @@ export default function ClientCatalog({ reload }) {
                 >
                   {selectedProduct.stock <= 0 ? "En rupture" : "Ajouter au panier"}
                 </button>
+                <button
+                  style={{ ...BTN.base, ...BTN.green }}
+                  onClick={() => setShowAIAssistant(selectedProduct)}
+                >
+                  🤖 IA Assistant
+                </button>
               </div>
             </div>
           </div>
         )}
+
+        {/* AI Assistant Modal */}
+        <AIAssistantModal
+          product={showAIAssistant}
+          isOpen={!!showAIAssistant}
+          onClose={() => setShowAIAssistant(null)}
+          onProductClick={(product) => {
+            setSelectedProduct(product);
+            setShowAIAssistant(null);
+          }}
+          onAddToCart={(product) => {
+            addToCart(product);
+            notify(`Produit ajouté au panier: ${product.name}`, 'success');
+          }}
+          onOrderNow={(product) => {
+            addToCart(product);
+            navigate('/client-dashboard/new-order');
+          }}
+        />
+
       </div>
     </div>
   );

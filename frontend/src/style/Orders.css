@@ -47,6 +47,16 @@
   z-index: 1;
 }
 
+.header-divider {
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4));
+  margin: 16px auto 0 auto;
+  border-radius: 2px;
+  position: relative;
+  z-index: 1;
+}
+
 /* Filtres */
 .orders-filters {
   display: flex;
@@ -322,17 +332,21 @@
 .btn-details {
   padding: 10px 20px;
   border: none;
-  border-radius: 12px;
-  font-size: 14px;
+  border-radius: 8px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   color: white;
   min-width: 100px;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
   position: relative;
   overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .btn-details::before {
@@ -352,7 +366,8 @@
 
 .btn-details:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
 }
 
 .btn-pay {
@@ -583,6 +598,8 @@
 
   .order-actions {
     flex-direction: column;
+    gap: 8px;
+    align-items: center;
   }
 
   .modal-overlay {
@@ -630,16 +647,55 @@
 }
 
 .status-select {
-  padding: 5px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background-color: #fff;
-  font-size: 14px;
+  padding: 8px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 140px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: relative;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px;
+  padding-right: 32px;
 }
 
 .status-select:hover {
-  border-color: #888;
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  transform: translateY(-1px);
+}
+
+.status-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.status-select:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+  border-color: #e2e8f0;
+}
+
+.status-select option {
+  padding: 8px 12px;
+  font-weight: 500;
+}
+
+.order-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  min-width: 120px;
 }
 
 /* Payment Breakdown Styles */
@@ -1003,5 +1059,103 @@
     padding: 6px 10px;
     font-size: 12px;
     min-width: 35px;
+  }
+}
+
+/* Confirmation Modal Styles */
+.confirmation-modal {
+  max-width: 400px;
+  width: 90%;
+}
+
+.confirmation-modal .modal-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+  border-radius: 12px 12px 0 0;
+  text-align: center;
+}
+
+.confirmation-modal .modal-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.confirmation-modal .modal-body {
+  padding: 25px;
+  text-align: center;
+  background: white;
+}
+
+.confirmation-modal .modal-body p {
+  margin: 0;
+  font-size: 1rem;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.confirmation-modal .modal-body strong {
+  color: #667eea;
+  font-weight: 600;
+}
+
+.confirmation-modal .modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 0 0 12px 12px;
+  justify-content: center;
+}
+
+.confirmation-modal .btn-cancel,
+.confirmation-modal .btn-confirm {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 100px;
+}
+
+.confirmation-modal .btn-cancel {
+  background: #e5e7eb;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.confirmation-modal .btn-cancel:hover {
+  background: #d1d5db;
+  transform: translateY(-1px);
+}
+
+.confirmation-modal .btn-confirm {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.confirmation-modal .btn-confirm:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+/* Mobile responsive for confirmation modal */
+@media (max-width: 768px) {
+  .confirmation-modal {
+    max-width: 350px;
+    width: 95%;
+  }
+
+  .confirmation-modal .modal-footer {
+    flex-direction: column;
+  }
+
+  .confirmation-modal .btn-cancel,
+  .confirmation-modal .btn-confirm {
+    width: 100%;
   }
 }

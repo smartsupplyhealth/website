@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import ClientNavbar from './dashboard/ClientNavbar';
+import Notification from './common/Notification';
+import NotificationButton from './NotificationButton';
+import NotificationPanel from './NotificationPanel';
 import '../style/Profile.css';
 
 const Profile = () => {
@@ -23,6 +26,7 @@ const Profile = () => {
   const [error, setError] = useState('');
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState('');
+  const [notification, setNotification] = useState({ message: '', type: '' });
 
   /* Auto clear success toast */
   useEffect(() => {
@@ -55,8 +59,7 @@ const Profile = () => {
     let e = '';
     switch (name) {
       case 'name':
-        if (value.trim().length < 4) e = 'Le nom doit contenir au moins 4 caractères.';
-        else if (!/^[a-zA-Z\s]+$/.test(value)) e = 'Le nom ne doit contenir que des lettres et des espaces.';
+        // Name field is now disabled, no validation needed
         break;
       case 'phone':
         if (!/^\d{8}$/.test(value)) e = 'Le numéro de téléphone doit contenir exactement 8 chiffres.';
@@ -124,8 +127,8 @@ const Profile = () => {
     const validationErrors = {};
     let invalid = false;
 
-    // champs à valider à coup sûr
-    ['name', 'phone', 'address', 'clinicName'].forEach((key) => {
+    // champs à valider à coup sûr (name is now disabled)
+    ['phone', 'address', 'clinicName'].forEach((key) => {
       const e = validateField(key, formData[key], formData);
       if (e) { validationErrors[key] = e; invalid = true; }
     });
@@ -156,9 +159,10 @@ const Profile = () => {
     }
 
     try {
-      // on n’envoie email ni confirmPassword; on n’envoie currentPassword/password que si on change le mdp
+      // on n'envoie email, name ni confirmPassword; on n'envoie currentPassword/password que si on change le mdp
       const {
         email,
+        name,
         confirmPassword,
         currentPassword,
         password,
@@ -173,7 +177,7 @@ const Profile = () => {
 
       const res = await api.put('/auth/profile', payload);
       setUser(res.data?.data?.user);
-      setSuccess('Profil mis à jour avec succès !');
+      setNotification({ message: 'Profil mis à jour avec succès ! ✅', type: 'success' });
       setErrors({});
       setFormData((prev) => ({
         ...prev,
@@ -183,15 +187,22 @@ const Profile = () => {
       }));
     } catch (err) {
       console.error('Profile update error:', err);
-      setError(err.response?.data?.message || 'La mise à jour du profil a échoué.');
+      setNotification({ message: err.response?.data?.message || 'La mise à jour du profil a échoué. ❌', type: 'error' });
     }
   };
 
-  if (loading) return <><ClientNavbar /><div className="profile-container">Chargement…</div></>;
+  if (loading) return <><ClientNavbar /><NotificationButton /><NotificationPanel /><div className="profile-container">Chargement…</div></>;
 
   return (
     <>
       <ClientNavbar />
+      <NotificationButton />
+      <NotificationPanel />
+      <Notification
+        message={notification.message}
+        type={notification.type}
+        onClose={() => setNotification({ message: '', type: '' })}
+      />
       <div className="orders-container">
         <div className="orders-header">
           <div className="profile-header-icon">{user?.name?.charAt(0)}</div>
@@ -202,8 +213,6 @@ const Profile = () => {
           <div className="profile-card">
 
             <form onSubmit={handleSubmit} className="profile-form">
-              {error && <div className="auth-error">{error}</div>}
-              {success && <div className="auth-success">{success}</div>}
 
               <div className="form-row">
                 <div className="form-group">
@@ -212,10 +221,9 @@ const Profile = () => {
                     type="text"
                     name="name"
                     value={formData.name}
-                    onChange={handleChange}
-                    className={`form-control ${errors.name ? 'is-invalid' : ''}`}
+                    className="form-control"
+                    disabled
                   />
-                  <div className="error-text">{errors.name}</div>
                 </div>
                 <div className="form-group">
                   <label>Email</label>

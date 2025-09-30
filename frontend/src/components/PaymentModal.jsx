@@ -123,8 +123,14 @@ const CheckoutForm = ({ order, onPaySuccess, onCancel }) => {
       let paymentMethodPayload;
 
       if (selectedCard && !isCardFormVisible) {
-        // Use saved card
-        paymentMethodPayload = selectedCard;
+        // Use saved card - find the Stripe payment method ID
+        const selectedCardData = savedCards.find(card => card.id === selectedCard);
+        if (!selectedCardData) {
+          setErrorMessage('Selected payment method not found. Please try again.');
+          setLoading(false);
+          return;
+        }
+        paymentMethodPayload = selectedCardData.stripePaymentMethodId;
       } else {
         // Use new card
         const cardElement = elements.getElement(CardElement);

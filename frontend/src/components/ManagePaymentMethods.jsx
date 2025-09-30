@@ -3,6 +3,9 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import api from '../services/api';
 import ClientNavbar from './dashboard/ClientNavbar';
+import Notification from './common/Notification';
+import NotificationButton from './NotificationButton';
+import NotificationPanel from './NotificationPanel';
 import '../style/ManagePaymentMethods.css';
 import '../style/ProductForm.css'; // styles du container + carte
 
@@ -97,7 +100,7 @@ const ManagePaymentMethods = () => {
   const [savedCards, setSavedCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [notification, setNotification] = useState('');
+  const [notification, setNotification] = useState({ message: '', type: '' });
   const [editingCard, setEditingCard] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
 
@@ -149,7 +152,7 @@ const ManagePaymentMethods = () => {
     // Add loading state
     setLoading(true);
     setError('');
-    setNotification('');
+    setNotification({ message: '', type: '' });
 
     try {
       console.log('🗑️ Deleting payment method with ID:', paymentMethodId);
@@ -164,7 +167,7 @@ const ManagePaymentMethods = () => {
       const response = await api.delete(`/payments/payment-methods/${paymentMethodId}`);
       console.log('✅ Delete response:', response.data);
 
-      setNotification('Carte supprimée avec succès !');
+      setNotification({ message: 'Carte supprimée avec succès ! ✅', type: 'success' });
       refreshCards();
     } catch (err) {
       console.error('❌ Delete card error:', err);
@@ -212,12 +215,12 @@ const ManagePaymentMethods = () => {
     try {
       setLoading(true);
       setError('');
-      setNotification('');
+      setNotification({ message: '', type: '' });
 
       const response = await api.put(`/payments/payment-methods/${paymentMethodId}/set-default`);
 
       if (response.data.success) {
-        setNotification('Carte par défaut mise à jour avec succès !');
+        setNotification({ message: 'Carte par défaut mise à jour avec succès ! ✅', type: 'success' });
         refreshCards();
       } else {
         setError(response.data.message || 'Erreur lors de la mise à jour de la carte par défaut.');
@@ -240,12 +243,12 @@ const ManagePaymentMethods = () => {
     try {
       setLoading(true);
       setError('');
-      setNotification('');
+      setNotification({ message: '', type: '' });
 
       const response = await api.put(`/payments/payment-methods/${editingCard.id}`, updatedCardData);
 
       if (response.data.success) {
-        setNotification('Carte mise à jour avec succès !');
+        setNotification({ message: 'Carte mise à jour avec succès ! ✅', type: 'success' });
         refreshCards();
         handleCloseEditModal();
       } else {
@@ -263,6 +266,13 @@ const ManagePaymentMethods = () => {
   return (
     <>
       <ClientNavbar />
+      <NotificationButton />
+      <NotificationPanel />
+      <Notification
+        message={notification.message}
+        type={notification.type}
+        onClose={() => setNotification({ message: '', type: '' })}
+      />
       <div className="orders-container">
         <div className="orders-header">
           <h1>Gérer les moyens de paiement</h1>
@@ -271,8 +281,6 @@ const ManagePaymentMethods = () => {
         <div className="main-content">
           <div className="profile-card">
 
-            {error && <div className="auth-error">{error}</div>}
-            {notification && <div className="auth-success">{notification}</div>}
 
             <div className="saved-cards-section">
               <h3>Vos cartes enregistrées</h3>
@@ -335,7 +343,7 @@ const ManagePaymentMethods = () => {
                   <AddCardForm
                     clientSecret={clientSecret}
                     onSuccess={() => {
-                      setNotification('Carte enregistrée avec succès !');
+                      setNotification({ message: 'Carte enregistrée avec succès ! ✅', type: 'success' });
                       refreshCards();
                     }}
                     onError={setError}

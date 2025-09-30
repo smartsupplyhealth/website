@@ -13,7 +13,7 @@ export default function ProductForm({ product, onSaved }) {
     usageInstructions: '',
     brandInfo: '',
     targetAudience: '',
-    technicalSpecs: [{ specName: '', specValue: '' }],
+    technicalSpecs: [{ specName: '' }],
     faqs: [{ question: '', answer: '' }]
   });
   const [formErrors, setFormErrors] = useState({});
@@ -24,7 +24,7 @@ export default function ProductForm({ product, onSaved }) {
   const [imageQualityErrors, setImageQualityErrors] = useState([]);
 
   // Helpers to manage dynamic lists
-  const addSpec = () => setForm(prev => ({ ...prev, technicalSpecs: [...prev.technicalSpecs, { specName: '', specValue: '' }] }));
+  const addSpec = () => setForm(prev => ({ ...prev, technicalSpecs: [...prev.technicalSpecs, { specName: '' }] }));
   const removeSpec = (index) => setForm(prev => ({ ...prev, technicalSpecs: prev.technicalSpecs.filter((_, i) => i !== index) }));
   const addFaq = () => setForm(prev => ({ ...prev, faqs: [...prev.faqs, { question: '', answer: '' }] }));
 
@@ -52,7 +52,7 @@ export default function ProductForm({ product, onSaved }) {
     const initialState = {
       name: '', description: '', price: '', stock: '', category: '',
       usageInstructions: '', brandInfo: '', targetAudience: '',
-      technicalSpecs: [{ specName: '', specValue: '' }],
+      technicalSpecs: [{ specName: '' }],
       faqs: [{ question: '', answer: '' }]
     };
 
@@ -155,7 +155,7 @@ export default function ProductForm({ product, onSaved }) {
     if (value && !/[a-zA-Z]/.test(value)) {
       error = 'Ce champ doit contenir des lettres.';
     }
-    
+
     setFormErrors(prev => ({
       ...prev,
       [section]: {
@@ -164,7 +164,7 @@ export default function ProductForm({ product, onSaved }) {
       }
     }));
   };
-  
+
   const handleDynamicBlur = (e, index, section, field) => {
     setTouched(prev => ({ ...prev, [`${section}-${index}-${field}`]: true }));
     handleDynamicChange(e, index, section, field); // Re-run validation on blur
@@ -240,7 +240,7 @@ export default function ProductForm({ product, onSaved }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const errors = {};
     Object.keys(form).forEach(key => {
       if (key !== 'technicalSpecs' && key !== 'faqs') {
@@ -251,7 +251,6 @@ export default function ProductForm({ product, onSaved }) {
 
     form.technicalSpecs.forEach((spec, index) => {
       if (spec.specName && !/[a-zA-Z]/.test(spec.specName)) errors[`technicalSpecs-${index}-specName`] = 'La caractéristique doit contenir des lettres.';
-      if (spec.specValue && !/[a-zA-Z0-9]/.test(spec.specValue)) errors[`technicalSpecs-${index}-specValue`] = 'La valeur doit contenir des lettres ou chiffres.';
     });
     form.faqs.forEach((faq, index) => {
       if (faq.question && !/[a-zA-Z]/.test(faq.question)) errors[`faqs-${index}-question`] = 'La question doit contenir des lettres.';
@@ -279,14 +278,14 @@ export default function ProductForm({ product, onSaved }) {
     selectedFiles.forEach(file => formData.append('images', file));
 
     try {
-      const headers = { 
+      const headers = {
         Authorization: `Bearer ${localStorage.getItem('token')}`,
         'Content-Type': 'multipart/form-data'
       };
       if (product) {
         await axios.put(`http://localhost:5000/api/products/${product._id}`, formData, { headers });
       } else {
-        const res = await axios.post('http://localhost:5000/api/products', form, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }});
+        const res = await axios.post('http://localhost:5000/api/products', form, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
         if (selectedFiles.length > 0) {
           await axios.post(`http://localhost:5000/api/products/${res.data._id}/images`, formData, { headers });
         }
@@ -299,11 +298,14 @@ export default function ProductForm({ product, onSaved }) {
 
   return (
     <div className="product-form-container">
-      <div className="form-header">
-        <h3 className={`form-title ${product ? 'edit' : 'create'}`}>{product ? 'Éditer' : 'Créer'} produit</h3>
-      </div>
-
       <form onSubmit={handleSubmit} className="product-form" noValidate>
+        {/* Submit Button at Top */}
+        <div className="submit-button-container">
+          <button type="submit" className={`submit-button ${product ? 'edit' : 'create'}`} disabled={imageQualityErrors.length > 0}>
+            {product ? 'Modifier un' : 'Ajouter un'} produit
+          </button>
+        </div>
+
         {/* --- Champs principaux --- */}
         <div className="form-field">
           <label className="field-label">Nom du produit *</label>
@@ -334,17 +336,14 @@ export default function ProductForm({ product, onSaved }) {
             <input name="targetAudience" placeholder="Ex: Cliniques dentaires..." value={form.targetAudience} onChange={handleChange} onBlur={handleBlur} className={`field-input ${formErrors.targetAudience && touched.targetAudience ? 'is-invalid' : ''}`} />
             {formErrors.targetAudience && touched.targetAudience && <p className="error-text">{formErrors.targetAudience}</p>}
           </div>
-          
+
           {/* Spécifications Techniques */}
           <div className="dynamic-section">
-            <h4 className="dynamic-section-title">Spécifications Techniques</h4>
+            <label className="field-label">Spécifications Techniques</label>
             {form.technicalSpecs.map((spec, index) => (
               <div key={index} className="dynamic-item">
                 <input placeholder="Caractéristique" value={spec.specName} onChange={e => handleDynamicChange(e, index, 'technicalSpecs', 'specName')} onBlur={e => handleDynamicBlur(e, index, 'technicalSpecs', 'specName')} className={`field-input ${formErrors.technicalSpecs?.[`${index}-specName`] && touched[`technicalSpecs-${index}-specName`] ? 'is-invalid' : ''}`} />
-                <input placeholder="Valeur" value={spec.specValue} onChange={e => handleDynamicChange(e, index, 'technicalSpecs', 'specValue')} onBlur={e => handleDynamicBlur(e, index, 'technicalSpecs', 'specValue')} className={`field-input ${formErrors.technicalSpecs?.[`${index}-specValue`] && touched[`technicalSpecs-${index}-specValue`] ? 'is-invalid' : ''}`} />
-                <button type="button" onClick={() => removeSpec(index)} className="remove-btn">✕</button>
                 {formErrors.technicalSpecs?.[`${index}-specName`] && touched[`technicalSpecs-${index}-specName`] && <p className="error-text dynamic-error">{formErrors.technicalSpecs[`${index}-specName`]}</p>}
-                {formErrors.technicalSpecs?.[`${index}-specValue`] && touched[`technicalSpecs-${index}-specValue`] && <p className="error-text dynamic-error">{formErrors.technicalSpecs[`${index}-specValue`]}</p>}
               </div>
             ))}
             <button type="button" onClick={addSpec} className="add-btn">Ajouter spécification</button>
@@ -352,14 +351,16 @@ export default function ProductForm({ product, onSaved }) {
 
           {/* FAQs */}
           <div className="dynamic-section">
-            <h4 className="dynamic-section-title">FAQ</h4>
+            <label className="field-label">FAQ</label>
             {form.faqs.map((faq, index) => (
               <div key={index} className="dynamic-item">
                 <input placeholder="Question" value={faq.question} onChange={e => handleDynamicChange(e, index, 'faqs', 'question')} onBlur={e => handleDynamicBlur(e, index, 'faqs', 'question')} className={`field-input ${formErrors.faqs?.[`${index}-question`] && touched[`faqs-${index}-question`] ? 'is-invalid' : ''}`} />
                 <textarea placeholder="Réponse" value={faq.answer} onChange={e => handleDynamicChange(e, index, 'faqs', 'answer')} onBlur={e => handleDynamicBlur(e, index, 'faqs', 'answer')} className={`field-textarea ${formErrors.faqs?.[`${index}-answer`] && touched[`faqs-${index}-answer`] ? 'is-invalid' : ''}`} />
-                <button type="button" onClick={addFaq} className="add-btn">Ajouter FAQ</button>
+                {formErrors.faqs?.[`${index}-question`] && touched[`faqs-${index}-question`] && <p className="error-text dynamic-error">{formErrors.faqs[`${index}-question`]}</p>}
+                {formErrors.faqs?.[`${index}-answer`] && touched[`faqs-${index}-answer`] && <p className="error-text dynamic-error">{formErrors.faqs[`${index}-answer`]}</p>}
               </div>
             ))}
+            <button type="button" onClick={addFaq} className="add-btn">Ajouter FAQ</button>
           </div>
         </details>
 
@@ -407,9 +408,13 @@ export default function ProductForm({ product, onSaved }) {
           )}
         </div>
 
-        <button type="submit" className={`submit-button ${product ? 'edit' : 'create'}`} disabled={imageQualityErrors.length > 0}>
-          {product ? 'Sauvegarder' : 'Créer'}
-        </button>
+        {/* Submit Button at Bottom */}
+        <div className="submit-button-container submit-button-bottom">
+          <button type="submit" className={`submit-button ${product ? 'edit' : 'create'}`} disabled={imageQualityErrors.length > 0}>
+            {product ? 'Modifier un' : 'Ajouter un'} produit
+          </button>
+        </div>
+
       </form>
     </div>
   );

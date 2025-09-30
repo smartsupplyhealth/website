@@ -6,6 +6,8 @@ import '../style/NewOrder.css';
 import ClientNavbar from './dashboard/ClientNavbar';
 import PaymentModal from './PaymentModal';
 import Notification from './common/Notification';
+import NotificationButton from './NotificationButton';
+import NotificationPanel from './NotificationPanel';
 import { CartContext } from '../contexts/CartContext';
 
 export default function NewOrder() {
@@ -114,9 +116,15 @@ export default function NewOrder() {
   const handlePaymentSuccess = () => {
     console.log('handlePaymentSuccess called in NewOrder component');
     setLoading(false); // Set loading to false since payment is complete
+
+    // Get order number for the success message
+    const orderNumber = orderToPay ? orderToPay.orderNumber : 'N/A';
+
     setOrderToPay(null);
     clearCart();
-    notify("Commande et paiement réussis 🎉", "success");
+
+    // Show contextual success message for direct payment
+    notify(`🚀 Commande #${orderNumber} créée et payée avec succès ! Votre commande est confirmée. 🎉`, "success");
 
     // Navigate immediately to avoid showing intermediate states
     console.log('Navigating to orders page...');
@@ -142,6 +150,8 @@ export default function NewOrder() {
   return (
     <>
       <ClientNavbar />
+      <NotificationButton />
+      <NotificationPanel />
       <div className="orders-container">
         <Notification
           message={notification.message}
@@ -177,8 +187,52 @@ export default function NewOrder() {
                             onClick={() => handleDec(item)}
                             disabled={item.quantity <= 1}
                           >-</button>
-                          <span className="quantity">{item.quantity}</span>
-                          <button className="qty-btn" onClick={() => handleInc(item)}>+</button>
+                          <input
+                            type="number"
+                            className="quantity-input"
+                            value={item.quantity}
+                            min="1"
+                            max={item.maxStock}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === '') return; // Allow empty input while typing
+
+                              const newQty = parseInt(value);
+                              if (isNaN(newQty) || newQty < 1) {
+                                return; // Don't update if invalid
+                              }
+
+                              if (newQty <= item.maxStock) {
+                                updateCartQuantity(item.productId, newQty);
+                              } else {
+                                notify(`Stock maximum: ${item.maxStock} unités`, 'warning');
+                                updateCartQuantity(item.productId, item.maxStock);
+                              }
+                            }}
+                            onBlur={(e) => {
+                              const value = e.target.value;
+                              const newQty = parseInt(value) || 1;
+                              if (newQty < 1) {
+                                updateCartQuantity(item.productId, 1);
+                              } else if (newQty > item.maxStock) {
+                                updateCartQuantity(item.productId, item.maxStock);
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              // Allow only numbers, backspace, delete, arrow keys, tab
+                              if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.key)) {
+                                e.preventDefault();
+                              }
+                            }}
+                          />
+                          <button
+                            className="qty-btn"
+                            onClick={() => handleInc(item)}
+                            disabled={item.quantity >= item.maxStock}
+                          >+</button>
+                        </div>
+                        <div className="stock-info">
+                          <span className="max-stock">Max: {item.maxStock}</span>
                         </div>
                         <span className="item-total">
                           {(item.price * item.quantity).toFixed(2)} €

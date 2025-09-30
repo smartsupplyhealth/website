@@ -1,21 +1,33 @@
 // src/components/Orders.jsx
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import '../style/Orders.css';
 import ClientNavbar from './dashboard/ClientNavbar';
 import PaymentModal from './PaymentModal';
+import NotificationButton from './NotificationButton';
+import NotificationPanel from './NotificationPanel';
 
 const Orders = () => {
+  const [searchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(8);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [orderToPay, setOrderToPay] = useState(null);
+
+  // Handle URL parameters for filtering
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    if (statusParam) {
+      setFilter(statusParam);
+    }
+  }, [searchParams]);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -95,12 +107,25 @@ const Orders = () => {
   const handlePaymentSuccess = () => {
     console.log('handlePaymentSuccess called in Orders component');
     console.log('Payment success - refreshing orders...');
+
+    // Determine the context based on the order being paid
+    const isRetryPayment = orderToPay && orderToPay.paymentStatus === 'Pending';
+    const orderNumber = orderToPay ? orderToPay.orderNumber : 'N/A';
+
     setOrderToPay(null);
-    // Show success notification instead of alert
-    if (window.notify) {
-      window.notify('Paiement réussi ! 🎉', 'success');
+
+    // Show contextual success message based on payment type
+    let successMessage;
+    if (isRetryPayment) {
+      successMessage = `✅ Paiement retry réussi ! Votre commande #${orderNumber} en attente a été confirmée. 🎉`;
     } else {
-      alert('Paiement réussi ! 🎉');
+      successMessage = `✅ Paiement direct réussi ! Votre commande #${orderNumber} a été confirmée. 🎉`;
+    }
+
+    if (window.notify) {
+      window.notify(successMessage, 'success');
+    } else {
+      alert(successMessage);
     }
 
     // Refresh orders immediately to show updated data
@@ -161,9 +186,12 @@ const Orders = () => {
   return (
     <div className="orders-container">
       <ClientNavbar />
+      <NotificationButton />
+      <NotificationPanel />
 
       <div className="orders-header">
         <h1>Mes Commandes</h1>
+        <p>Consultez l'historique de vos commandes et suivez leur statut en temps réel.</p>
       </div>
 
       <div className="main-content">
@@ -289,8 +317,9 @@ const Orders = () => {
                           onChange={(e) => setItemsPerPage(Number(e.target.value))}
                           className="items-select"
                         >
-                          <option value={5}>5</option>
-                          <option value={10}>10</option>
+                          <option value={4}>4</option>
+                          <option value={8}>8</option>
+                          <option value={12}>12</option>
                         </select>
                       </div>
 
