@@ -8,13 +8,21 @@ const Product = require('../models/Product');
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const CHROMA_COLLECTION_NAME = 'products';
 
-if (!GEMINI_API_KEY) {
-  console.error("Erreur: GEMINI_API_KEY doit être défini dans .env");
+let genAI, embeddingModel, chromaClient;
+
+if (!GEMINI_API_KEY || GEMINI_API_KEY === 'placeholder') {
+  console.warn("⚠️  Embedding service disabled: GEMINI_API_KEY not provided or using placeholder value");
+} else {
+  genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+  embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
 }
 
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const chromaClient = new ChromaClient();
-const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+// ChromaDB peut fonctionner indépendamment
+try {
+  chromaClient = new ChromaClient();
+} catch (error) {
+  console.warn("⚠️  ChromaDB not available:", error.message);
+}
 
 const formatProductForEmbedding = (product) => {
   const p = product.toObject ? product.toObject() : product;
@@ -40,6 +48,12 @@ const formatProductForEmbedding = (product) => {
  */
 const upsertProductEmbedding = async (product) => {
   if (!product?._id) return console.error('Embedding Service: Invalid product for upsert.');
+  
+  // Si les services d'embedding ne sont pas disponibles, on ignore silencieusement
+  if (!embeddingModel || !chromaClient) {
+    console.warn('⚠️  Embedding services not available - skipping product embedding');
+    return;
+  }
   
   try {
     console.log(` Embedding Service: Upserting product ID: ${product._id}`);

@@ -61,7 +61,7 @@ const paymentMethodSchema = new mongoose.Schema({
 
 // Index for faster lookups
 paymentMethodSchema.index({ client: 1, isActive: 1 });
-paymentMethodSchema.index({ stripePaymentMethodId: 1 });
+// Note: stripePaymentMethodId already has unique: true, so no need for additional index
 
 // Method to check if CVV is correct
 paymentMethodSchema.methods.validateCVV = function (inputCVV) {

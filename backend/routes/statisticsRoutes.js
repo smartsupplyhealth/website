@@ -5,6 +5,9 @@ const statisticsController = require('../controllers/StatisticsController');
 
 const { auth } = require('../middleware/auth');
 
+// ===== ROOT ROUTE =====
+router.get('/', auth, statisticsController.getDashboardOverview);
+
 // ===== DASHBOARD ROUTES =====
 router.get('/dashboard/overview', statisticsController.getDashboardOverview);
 router.get('/analytics/summary', statisticsController.getAnalyticsSummary);

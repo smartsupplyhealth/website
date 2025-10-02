@@ -44,3 +44,7 @@ async function checkPaymentMethods() {
 checkPaymentMethods();
 
 
+
+
+
+

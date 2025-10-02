@@ -3,7 +3,13 @@ const Client = require('../models/Client');
 const Coupon = require('../models/Coupon');
 const Product = require('../models/Product');
 const PaymentMethod = require('../models/PaymentMethod');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+// Initialize Stripe only if the key is provided and valid
+let stripe;
+if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY !== 'sk_test_your_stripe_key_here') {
+  stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+} else {
+  console.warn('⚠️  Stripe not initialized in paymentController: STRIPE_SECRET_KEY not provided or using placeholder value');
+}
 const { createAndPayAutoOrder } = require('../services/paymentService');
 const sendEmail = require('../utils/emailService');
 

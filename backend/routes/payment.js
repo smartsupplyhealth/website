@@ -23,6 +23,7 @@ router.post('/apply-coupon/:orderId', auth, authorize('client'), applyCoupon);
 router.post('/coupon-payment/:orderId', auth, authorize('client'), processCouponPayment);
 
 // --- Routes for Managing Payment Methods ---
+router.get('/methods', auth, authorize('client'), getPaymentMethods);
 router.get('/payment-methods', auth, authorize('client'), getPaymentMethods);
 router.post('/create-setup-intent', auth, authorize('client'), createSetupIntent);
 router.post('/save-payment-method', auth, authorize('client'), savePaymentMethod);

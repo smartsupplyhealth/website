@@ -140,10 +140,15 @@ async function getRecommendations(clientId, limit = 5) {
 /* ---------------- Controller HTTP ---------------- */
 exports.getRecommendationsForClient = async (req, res) => {
   try {
-    const { clientId } = req.params;
+    // Use clientId from params if provided, otherwise use logged-in user's ID
+    const clientId = req.params.clientId || req.user?.id;
     const limit = Number(req.query.limit) || 5;
 
-    // Vérif JWT (garde-le si tu n’as pas de middleware global)
+    if (!clientId) {
+      return res.status(400).json({ message: 'Client ID is required' });
+    }
+
+    // Vérif JWT (garde-le si tu n'as pas de middleware global)
     const raw = req.headers.authorization || '';
     const token = raw.startsWith('Bearer ') ? raw.slice(7) : null;
     if (!token) return res.status(401).json({ message: 'No authentication token provided' });
@@ -160,3 +165,6 @@ exports.getRecommendationsForClient = async (req, res) => {
     });
   }
 };
+
+
+

@@ -11,11 +11,13 @@ exports.getSupplierStats = async (req, res) => {
         const productIds = supplierProducts.map(p => p._id);
 
         // 1. Active Clients (based on all non-cancelled orders)
-        const allOrders = await Order.find({ 
+        const allOrders = await Order.find({
             'items.product': { $in: productIds },
-            status: { $ne: 'cancelled' } 
+            status: { $ne: 'cancelled' }
         }).populate('client');
-        const activeClients = new Set(allOrders.map(order => order.client._id.toString()));
+        const activeClients = new Set(allOrders
+            .filter(order => order.client && order.client._id)
+            .map(order => order.client._id.toString()));
 
         // 2. Total Orders (excluding cancelled)
         const totalOrders = allOrders.length;
@@ -54,6 +56,65 @@ exports.getSupplierStats = async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching supplier stats:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+exports.getSupplierOrders = async (req, res) => {
+    try {
+        const supplierId = req.user.id;
+        const { status, page = 1, limit = 10 } = req.query;
+
+        // Get product IDs for the supplier
+        const supplierProducts = await Product.find({ supplier: new mongoose.Types.ObjectId(supplierId) }).select('_id');
+        const productIds = supplierProducts.map(p => p._id);
+
+        if (productIds.length === 0) {
+            return res.json({
+                success: true,
+                data: [],
+                pagination: {
+                    totalItems: 0,
+                    totalPages: 0,
+                    currentPage: 1,
+                    hasNext: false,
+                    hasPrev: false,
+                }
+            });
+        }
+
+        // Build filter for orders containing supplier's products
+        let filter = { 'items.product': { $in: productIds } };
+        if (status && status !== 'all') {
+            filter.status = status;
+        }
+
+        // Calculate pagination
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const totalOrders = await Order.countDocuments(filter);
+        const totalPages = Math.ceil(totalOrders / parseInt(limit));
+
+        // Fetch orders with pagination
+        const orders = await Order.find(filter)
+            .populate('client', 'name email clinicName phone')
+            .populate('items.product', 'name price')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        res.json({
+            success: true,
+            data: orders,
+            pagination: {
+                totalItems: totalOrders,
+                totalPages: totalPages,
+                currentPage: parseInt(page),
+                hasNext: parseInt(page) < totalPages,
+                hasPrev: parseInt(page) > 1,
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching supplier orders:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };

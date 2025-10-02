@@ -1,6 +1,12 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+// Initialize Stripe only if the key is provided and valid
+let stripe;
+if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY !== 'sk_test_your_stripe_key_here') {
+  stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+} else {
+  console.warn('⚠️  Stripe not initialized: STRIPE_SECRET_KEY not provided or using placeholder value');
+}
 const crypto = require('crypto');
 const sendEmail = require('../utils/emailService');
 const { auth } = require('../middleware/auth');

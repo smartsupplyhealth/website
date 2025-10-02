@@ -4,7 +4,13 @@ const ClientInventory = require('../models/ClientInventory');
 const Product = require('../models/Product');
 const Client = require('../models/Client');
 const sendEmail = require('../utils/emailService');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+// Initialize Stripe only if the key is provided and valid
+let stripe;
+if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY !== 'sk_test_your_stripe_key_here') {
+  stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+} else {
+  console.warn('⚠️  Stripe not initialized in paymentService: STRIPE_SECRET_KEY not provided or using placeholder value');
+}
 
 const createAndPayAutoOrder = async (clientId) => {
   const validClientId = new mongoose.Types.ObjectId(clientId);

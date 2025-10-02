@@ -8,4 +8,9 @@ const { auth } = require('../middleware/auth');
 // @access  Private
 router.get('/stats', auth, supplierController.getSupplierStats);
 
+// @route   GET api/supplier/orders
+// @desc    Get orders for supplier's products
+// @access  Private
+router.get('/orders', auth, supplierController.getSupplierOrders);
+
 module.exports = router;

@@ -3,11 +3,14 @@ const sgMail = require('@sendgrid/mail');
 
 // --- CONFIGURATION DE SENDGRID ---
 // On configure la clé API une seule fois au démarrage de l'application.
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
-console.log("--- Service d'email configuré avec SendGrid ---");
-console.log(`Email d'expédition par défaut: ${process.env.EMAIL_FROM}`);
-console.log(`Clé API SendGrid définie: ${!!process.env.SENDGRID_API_KEY}`);
+if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.startsWith('SG.')) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  console.log("--- Service d'email configuré avec SendGrid ---");
+  console.log(`Email d'expédition par défaut: ${process.env.EMAIL_FROM || 'undefined'}`);
+  console.log(`Clé API SendGrid définie: true`);
+} else {
+  console.warn("⚠️  SendGrid not configured: API key does not start with 'SG.' or is not provided");
+}
 console.log("-------------------------------------------");
 
 /**
@@ -18,8 +21,8 @@ console.log("-------------------------------------------");
  */
 const sendEmail = async (to, subject, html) => {
   // On vérifie si la clé API et l'expéditeur sont bien configurés.
-  if (!process.env.SENDGRID_API_KEY || !process.env.EMAIL_FROM) {
-    console.error("Erreur: SENDGRID_API_KEY ou EMAIL_FROM n'est pas défini dans le fichier .env");
+  if (!process.env.SENDGRID_API_KEY || !process.env.SENDGRID_API_KEY.startsWith('SG.') || !process.env.EMAIL_FROM) {
+    console.warn("⚠️  Email not sent: SendGrid not properly configured (API key missing or invalid, or EMAIL_FROM not set)");
     // On ne lance pas d'erreur pour ne pas crasher le serveur, mais on log le problème.
     return;
   }
