@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # Conteneur All-in-One SmartSupply Health
+  smartsupply-all-in-one:
+    build:
+      context: .
+      dockerfile: Dockerfile.all-in-one
+    container_name: smartsupply-all-in-one
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://localhost:27017/smartsupply
+      JWT_SECRET: your-jwt-secret-here
+      STRIPE_SECRET_KEY: your-stripe-secret-key
+      SENDGRID_API_KEY: your-sendgrid-api-key
+      REACT_APP_API_URL: http://localhost:5000
+    ports:
+      - "80:80"      # Frontend + API via Nginx
+      - "3000:3000"  # Frontend direct (optionnel)
+      - "5000:5000"  # Backend direct (optionnel)
+      - "27017:27017" # MongoDB direct (optionnel)
+    volumes:
+      - smartsupply_data:/var/lib/mongodb
+      - smartsupply_logs:/var/log
+      - smartsupply_uploads:/app/backend/uploads
+    networks:
+      - smartsupply-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+
+volumes:
+  smartsupply_data:
+    driver: local
+  smartsupply_logs:
+    driver: local
+  smartsupply_uploads:
+    driver: local
+
+networks:
+  smartsupply-network:
+    driver: bridge
