@@ -13,11 +13,13 @@ const {
     setDefaultPaymentMethod,
     applyCoupon,
     processCouponPayment,
+    processSavedCardPayment,
 } = require('../controllers/paymentController');
 
 // --- Routes for Order Payments ---
 router.post('/create-payment-intent/:orderId', auth, authorize('client'), createPaymentIntent);
 router.post('/update-order-payment-status/:orderId', auth, authorize('client'), updateOrderAfterPayment);
+router.post('/process-saved-card-payment/:orderId', auth, authorize('client'), processSavedCardPayment);
 router.post('/automatic-order', auth, authorize('client'), createAutomaticOrderAndPay);
 router.post('/apply-coupon/:orderId', auth, authorize('client'), applyCoupon);
 router.post('/coupon-payment/:orderId', auth, authorize('client'), processCouponPayment);

@@ -5,7 +5,7 @@ const Product = require('../models/Product');
 exports.createProduct = async (req, res) => {
   try {
     const { name, description, price, stock, category, usageInstructions, brandInfo, targetAudience, technicalSpecs, faqs } = req.body;
-    
+
     const product = new Product({
       supplier: req.user.id,
       name, description, price, stock, category,
@@ -116,7 +116,7 @@ exports.getProducts = async (req, res) => {
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ createdAt: -1 });
-    
+
     const count = await Product.countDocuments(filter);
 
     res.json({
@@ -126,6 +126,34 @@ exports.getProducts = async (req, res) => {
     });
   } catch (err) {
     console.error('Error in getProducts:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get similar products by category
+exports.getSimilarProducts = async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    // Get the current product to find its category
+    const currentProduct = await Product.findById(productId);
+    if (!currentProduct) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // Find products in the same category, excluding the current product
+    const similarProducts = await Product.find({
+      category: currentProduct.category,
+      _id: { $ne: productId }, // Exclude current product
+      stock: { $gt: 0 } // Only show products with stock
+    })
+      .limit(6) // Limit to 6 similar products
+      .select('name price stock images category description')
+      .sort({ createdAt: -1 }); // Sort by newest first
+
+    res.json(similarProducts);
+  } catch (err) {
+    console.error('Error in getSimilarProducts:', err);
     res.status(500).json({ message: err.message });
   }
 };

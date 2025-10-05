@@ -63,13 +63,16 @@ const Chatbot = () => {
   const handleSend = async () => {
     if (input.trim() === '' || isLoading) return;
 
+    console.log('Sending message:', input);
     const userMessage = { sender: 'user', text: input };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
     try {
+      console.log('Calling chatbot API...');
       const response = await api.post('/chatbot', { message: input });
+      console.log('Chatbot API response:', response.data);
       const botMessage = { sender: 'bot', text: response.data.reply };
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
@@ -87,8 +90,13 @@ const Chatbot = () => {
     }
   };
 
+  // Debug: Log user status
+  console.log('Chatbot component - user:', user);
+  console.log('Chatbot component - isOpen:', isOpen);
+
   // Don't render the chatbot button at all if no user is logged in
   if (!user) {
+    console.log('Chatbot: No user logged in, not rendering');
     return null;
   }
 

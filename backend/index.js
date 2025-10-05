@@ -20,7 +20,11 @@ const chatbotRoutes = require('./routes/chatbot'); // <-- AJOUTER CETTE LIGNE
 const statisticsRoutes = require('./routes/statisticsRoutes');
 const webhookRoutes = require('./routes/webhook');
 const couponRoutes = require('./routes/coupons');
+const notificationRoutes = require('./routes/notifications');
+const cryptoPaymentRoutes = require('./routes/cryptoPayments');
+const stockReleaseRoutes = require('./routes/stockRelease');
 const errorHandler = require('./middleware/errorHandler');
+const stockReleaseService = require('./services/stockReleaseService');
 
 // Error handler (doit être APRES les routes)
 const connectDB = require('./config/db');
@@ -67,6 +71,9 @@ app.use('/api/chatbot', chatbotRoutes); // <-- AJOUTER CETTE LIGNE
 app.use('/api/statistics', statisticsRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/coupons', couponRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/crypto-payments', cryptoPaymentRoutes);
+app.use('/api/stock-release', stockReleaseRoutes);
 
 /* ------------------------ 4) HEALTHCHECK ----------------------------- */
 app.get('/api/health', (req, res) => {
@@ -83,4 +90,6 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   // Démarrer les tâches planifiées une fois le serveur démarré
   scheduleDailyConsumption();
+  // Démarrer le service de libération automatique du stock
+  stockReleaseService.start();
 });

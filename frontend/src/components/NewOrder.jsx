@@ -19,6 +19,10 @@ export default function NewOrder() {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [orderToPay, setOrderToPay] = useState(null);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [successOrderNumber, setSuccessOrderNumber] = useState('');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card');
   const navigate = useNavigate();
 
   const token = useMemo(() => localStorage.getItem('token'), []);
@@ -92,6 +96,7 @@ export default function NewOrder() {
         },
         notes: orderNotes,
         totalAmount,
+        paymentMethod: selectedPaymentMethod, // Include the selected payment method
       };
       const { data: newOrder } = await axiosAuth.post('/api/orders', orderData);
 
@@ -123,11 +128,15 @@ export default function NewOrder() {
     setOrderToPay(null);
     clearCart();
 
-    // Show contextual success message for direct payment
+    // Show success message and manual continue option
+    setSuccessOrderNumber(orderNumber);
+    setShowSuccessMessage(true);
     notify(`🚀 Commande #${orderNumber} créée et payée avec succès ! Votre commande est confirmée. 🎉`, "success");
+  };
 
-    // Navigate immediately to avoid showing intermediate states
-    console.log('Navigating to orders page...');
+  const handleContinueToOrders = () => {
+    console.log('Continuing to orders page...');
+    setShowSuccessMessage(false);
     navigate('/client-dashboard/orders');
 
     // Check if this manual order unlocks auto orders (after navigation)
@@ -143,8 +152,45 @@ export default function NewOrder() {
   };
 
   const handleAddProducts = () => {
-    notify("Vous pouvez ajouter d’autres produits depuis le catalogue.", "info");
+    notify("Vous pouvez ajouter d'autres produits depuis le catalogue.", "info");
     setTimeout(() => navigate('/client-dashboard/catalog'), 600);
+  };
+
+  // Fonctions pour le curseur rotatif
+  const handleDialStart = (e, item) => {
+    e.preventDefault();
+    const startX = e.clientX || e.touches[0].clientX;
+    const startY = e.clientY || e.touches[0].clientY;
+    const startQuantity = item.quantity;
+
+    const handleMouseMove = (moveEvent) => {
+      const currentX = moveEvent.clientX || moveEvent.touches[0].clientX;
+      const currentY = moveEvent.clientY || moveEvent.touches[0].clientY;
+
+      const deltaX = currentX - startX;
+      const deltaY = startY - currentY; // Inversé pour que vers le haut = +
+
+      // Sensibilité du curseur
+      const sensitivity = 0.1;
+      const delta = Math.round((deltaX + deltaY) * sensitivity);
+      const newQuantity = Math.max(1, Math.min(item.maxStock, startQuantity + delta));
+
+      if (newQuantity !== item.quantity) {
+        updateCartQuantity(item.productId, newQuantity);
+      }
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchmove', handleMouseMove);
+      document.removeEventListener('touchend', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('touchmove', handleMouseMove);
+    document.addEventListener('touchend', handleMouseUp);
   };
 
   return (
@@ -181,70 +227,45 @@ export default function NewOrder() {
                         <p>{item.price.toFixed(2)} €</p>
                       </div>
                       <div className="item-controls">
-                        <div className="quantity-controls">
-                          <button
-                            className="qty-btn"
-                            onClick={() => handleDec(item)}
-                            disabled={item.quantity <= 1}
-                          >-</button>
-                          <input
-                            type="number"
-                            className="quantity-input"
-                            value={item.quantity}
-                            min="1"
-                            max={item.maxStock}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              if (value === '') return; // Allow empty input while typing
-
-                              const newQty = parseInt(value);
-                              if (isNaN(newQty) || newQty < 1) {
-                                return; // Don't update if invalid
-                              }
-
-                              if (newQty <= item.maxStock) {
-                                updateCartQuantity(item.productId, newQty);
-                              } else {
-                                notify(`Stock maximum: ${item.maxStock} unités`, 'warning');
-                                updateCartQuantity(item.productId, item.maxStock);
-                              }
-                            }}
-                            onBlur={(e) => {
-                              const value = e.target.value;
-                              const newQty = parseInt(value) || 1;
-                              if (newQty < 1) {
-                                updateCartQuantity(item.productId, 1);
-                              } else if (newQty > item.maxStock) {
-                                updateCartQuantity(item.productId, item.maxStock);
-                              }
-                            }}
-                            onKeyDown={(e) => {
-                              // Allow only numbers, backspace, delete, arrow keys, tab
-                              if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.key)) {
-                                e.preventDefault();
-                              }
-                            }}
-                          />
-                          <button
-                            className="qty-btn"
-                            onClick={() => handleInc(item)}
-                            disabled={item.quantity >= item.maxStock}
-                          >+</button>
+                        <div className="quantity-section">
+                          <div className="quantity-controls">
+                            <div
+                              className="quantity-dial"
+                              onMouseDown={(e) => handleDialStart(e, item)}
+                              onTouchStart={(e) => handleDialStart(e, item)}
+                            >
+                              <div className="dial-circle">
+                                <div className="dial-value">{item.quantity}</div>
+                                <div className="dial-indicator"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="stock-info">
+                            <span className="max-stock">Max: {item.maxStock}</span>
+                          </div>
                         </div>
-                        <div className="stock-info">
-                          <span className="max-stock">Max: {item.maxStock}</span>
+                        <div className="price-section">
+                          <span className="item-total">
+                            {(item.price * item.quantity).toFixed(2)} €
+                          </span>
+                          <button className="remove-btn" onClick={() => handleRemove(item)}>×</button>
                         </div>
-                        <span className="item-total">
-                          {(item.price * item.quantity).toFixed(2)} €
-                        </span>
-                        <button className="remove-btn" onClick={() => handleRemove(item)}>×</button>
                       </div>
                     </div>
                   ))}
                 </div>
 
                 <div className="cart-summary">
-                  <div className="total-amount">Total: {totalAmount.toFixed(2)} €</div>
+                  <div className="summary-header">
+                    <button
+                      className="clear-cart-btn"
+                      onClick={() => setShowClearConfirm(true)}
+                      disabled={cart.length === 0}
+                    >
+                      🗑️ Supprimer tout
+                    </button>
+                    <div className="total-amount">Total: {totalAmount.toFixed(2)} €</div>
+                  </div>
                   <div className="cart-actions">
                     <button className="add-products-btn" onClick={handleAddProducts}>
                       + Ajouter des Produits
@@ -263,6 +284,40 @@ export default function NewOrder() {
           </div>
         </div>
       </div>
+
+      {/* Modal de confirmation pour vider le panier */}
+      {showClearConfirm && (
+        <div className="confirm-modal-overlay">
+          <div className="confirm-modal">
+            <div className="confirm-modal-header">
+              <div className="confirm-icon">🗑️</div>
+              <h3>Vider le panier</h3>
+            </div>
+            <div className="confirm-modal-body">
+              <p>Êtes-vous sûr de vouloir supprimer tous les articles de votre panier ?</p>
+              <p className="confirm-warning">Cette action est irréversible.</p>
+            </div>
+            <div className="confirm-modal-actions">
+              <button
+                className="confirm-cancel-btn"
+                onClick={() => setShowClearConfirm(false)}
+              >
+                Annuler
+              </button>
+              <button
+                className="confirm-delete-btn"
+                onClick={() => {
+                  clearCart();
+                  setShowClearConfirm(false);
+                  notify("Panier vidé avec succès", "success");
+                }}
+              >
+                Oui, vider le panier
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isCheckoutVisible && (
         <div className="checkout-modal">
@@ -293,6 +348,33 @@ export default function NewOrder() {
               ></textarea>
             </div>
 
+            <div className="payment-method-section">
+              <h3>Mode de Paiement</h3>
+              <div className="payment-method-options">
+                <div
+                  className={`payment-option ${selectedPaymentMethod === 'card' ? 'selected' : ''}`}
+                  onClick={() => setSelectedPaymentMethod('card')}
+                >
+                  <div className="payment-icon">💳</div>
+                  <div className="payment-info">
+                    <h4>Carte bancaire</h4>
+                    <p>Visa, Mastercard, etc.</p>
+                  </div>
+                </div>
+
+                <div
+                  className={`payment-option ${selectedPaymentMethod === 'crypto' ? 'selected' : ''}`}
+                  onClick={() => setSelectedPaymentMethod('crypto')}
+                >
+                  <div className="payment-icon">₿</div>
+                  <div className="payment-info">
+                    <h4>Cryptomonnaie</h4>
+                    <p>Bitcoin, Ethereum, etc.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="checkout-summary">
               <div className="checkout-total">
                 <span className="checkout-total-label">Total à Payer</span>
@@ -311,10 +393,42 @@ export default function NewOrder() {
 
       {orderToPay && (
         <PaymentModal
+          isOpen={!!orderToPay}
           order={orderToPay}
-          onPaySuccess={handlePaymentSuccess}
-          onCancel={handlePaymentCancel}
+          onPaymentSuccess={handlePaymentSuccess}
+          onClose={handlePaymentCancel}
         />
+      )}
+
+      {/* Success Message Modal */}
+      {showSuccessMessage && (
+        <div className="success-modal-overlay">
+          <div className="success-modal">
+            <div className="success-modal-header">
+              <h2>🎉 Commande Confirmée!</h2>
+            </div>
+            <div className="success-modal-body">
+              <div className="success-icon">✅</div>
+              <h3>Commande #{successOrderNumber} créée avec succès!</h3>
+              <p>Votre commande a été payée et confirmée. Vous recevrez un email de confirmation sous peu.</p>
+              <div className="success-details">
+                <p><strong>Statut:</strong> Payé et confirmé</p>
+                <p><strong>Prochaines étapes:</strong> Préparation et livraison</p>
+              </div>
+            </div>
+            <div className="success-modal-footer">
+              <button
+                className="continue-btn"
+                onClick={handleContinueToOrders}
+              >
+                🚀 Voir mes commandes
+              </button>
+              <p className="success-note">
+                Cliquez sur le bouton ci-dessus pour voir le détail de vos commandes
+              </p>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

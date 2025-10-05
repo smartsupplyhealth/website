@@ -55,12 +55,16 @@ const Login = () => {
   };
 
   const handleSubmit = async (e) => {
-    if (e) e.preventDefault();
+    e.preventDefault(); // Always prevent default form submission
+
+    // Clear any existing errors
+    if (error) clearError();
+    if (localError) setLocalError('');
 
     const errors = validateAllFields();
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
-      return false;
+      return;
     }
 
     try {
@@ -68,11 +72,11 @@ const Login = () => {
       if (!res?.success) {
         setLocalError(res?.error || 'Email ou mot de passe invalide.');
       }
+      // Note: Navigation is handled in AuthContext on successful login
     } catch (err) {
       setLocalError('Email ou mot de passe invalide.');
       console.error('Login failed:', err);
     }
-    return false;
   };
 
   const handleFormKeyDown = (e) => {
@@ -107,11 +111,11 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="auth-form" noValidate>
           {(error || localError) && (
-            <div className="auth-error">
-              <svg viewBox="0 0 20 20" fill="currentColor">
+            <div className="auth-error" role="alert">
+              <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
-              {localError || error}
+              <span>{localError || error}</span>
             </div>
           )}
 

@@ -1,0 +1,115 @@
+/* LoadingSpinner.css */
+.loading-spinner-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 20px;
+}
+
+.loading-spinner {
+    position: relative;
+    display: inline-block;
+}
+
+.spinner-ring {
+    display: inline-block;
+    position: relative;
+}
+
+.spinner-ring div {
+    box-sizing: border-box;
+    display: block;
+    position: absolute;
+    border-radius: 50%;
+    animation: spinner-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+.spinner-ring div:nth-child(1) {
+    animation-delay: -0.45s;
+}
+
+.spinner-ring div:nth-child(2) {
+    animation-delay: -0.3s;
+}
+
+.spinner-ring div:nth-child(3) {
+    animation-delay: -0.15s;
+}
+
+.spinner-ring div:nth-child(4) {
+    animation-delay: 0s;
+}
+
+/* Size variants */
+.spinner-small .spinner-ring div {
+    width: 8px;
+    height: 8px;
+    margin: 4px;
+    border: 2px solid;
+}
+
+.spinner-medium .spinner-ring div {
+    width: 12px;
+    height: 12px;
+    margin: 6px;
+    border: 3px solid;
+}
+
+.spinner-large .spinner-ring div {
+    width: 16px;
+    height: 16px;
+    margin: 8px;
+    border: 4px solid;
+}
+
+/* Color variants */
+.spinner-primary .spinner-ring div {
+    border-color: #667eea transparent transparent transparent;
+}
+
+.spinner-secondary .spinner-ring div {
+    border-color: #6b7280 transparent transparent transparent;
+}
+
+.spinner-success .spinner-ring div {
+    border-color: #10b981 transparent transparent transparent;
+}
+
+.spinner-warning .spinner-ring div {
+    border-color: #f59e0b transparent transparent transparent;
+}
+
+.spinner-error .spinner-ring div {
+    border-color: #ef4444 transparent transparent transparent;
+}
+
+.loading-message {
+    margin: 0;
+    font-size: 14px;
+    color: #6b7280;
+    font-weight: 500;
+    text-align: center;
+}
+
+/* Animation */
+@keyframes spinner-ring {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .loading-message {
+        font-size: 13px;
+    }
+}
+
+
+

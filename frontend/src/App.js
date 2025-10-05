@@ -4,13 +4,14 @@ import { CartProvider } from './contexts/CartContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { useAuth } from './contexts/AuthContext';
 import Favicon from './components/Favicon';
+import LoadingScreen from './components/common/LoadingScreen';
 import Register from './components/auth/Register';
 import SupplierDashboard from './components/dashboard/SupplierDashboard';
 import Login from './components/auth/Login';
 import ClientDashboard from './components/dashboard/ClientDashboard';
 import ProductsPage from './pages/ProductsPage';
 import ClientCatalog from './components/ClientCatalog';
-import Orders from './components/Orders ';
+import Orders from './components/Orders';
 import NewOrder from './components/NewOrder';
 import SupplierOrders from './components/SupplierOrders';
 import SupplierClients from './components/SupplierClients';
@@ -20,6 +21,8 @@ import Chatbot from './components/chatbot/Chatbot';
 import Profile from './components/Profile';
 import SupplierProfile from './components/SupplierProfile';
 import ForgotPassword from './components/auth/ForgotPassword';
+import CardPaymentPage from './pages/CardPaymentPage';
+import CryptoPaymentPage from './pages/CryptoPaymentPage';
 import './App.css';
 
 function App() {
@@ -27,6 +30,11 @@ function App() {
 
   console.log('App component - user:', user);
   console.log('App component - loading:', loading);
+
+  // Show loading screen while authentication is being checked
+  if (loading) {
+    return <LoadingScreen />;
+  }
 
   return (
     <NotificationProvider>
@@ -52,6 +60,8 @@ function App() {
               <Route path="/supplier/client" element={<SupplierClients />} />
               <Route path="/client-dashboard/stock" element={<ClientInventory />} />
               <Route path="/client-dashboard/payment-methods" element={<ManagePaymentMethods />} />
+              <Route path="/payment/card/:orderId" element={<CardPaymentPage />} />
+              <Route path="/payment/crypto/:orderId" element={<CryptoPaymentPage />} />
             </Routes>
           </main>
           <Chatbot />

@@ -429,7 +429,7 @@ export default function AIAssistantModal({ product, isOpen, onClose, onProductCl
 
                             {/* Similar Products Section */}
                             <div className="similar-products-section">
-                                <h3>🔗 Produits similaires de même catégorie</h3>
+                                <h3>🔗 Produits recommandés</h3>
                                 {similarProducts.length > 0 ? (
                                     <div className="similar-products-grid">
                                         {similarProducts.map((similarProduct) => (

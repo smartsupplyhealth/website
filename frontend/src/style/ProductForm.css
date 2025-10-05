@@ -157,10 +157,6 @@
   gap: 6px;
 }
 
-.error-text::before {
-  content: '⚠️';
-  font-size: 12px;
-}
 
 /* IA Details Section */
 .ia-details-section {

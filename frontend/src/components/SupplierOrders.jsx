@@ -6,6 +6,7 @@ import '../style/Orders.css';
 import SupplierNavbar from './dashboard/SupplierNavbar';
 import NotificationButton from './NotificationButton';
 import NotificationPanel from './NotificationPanel';
+import LoadingSpinner from './common/LoadingSpinner';
 import { API_URL } from '../config/environment';
 
 /* ===== Helpers d'affichage ===== */
@@ -36,6 +37,27 @@ const getStatusBadge = (status) => {
   };
   const cfg = statusConfig[status] || { label: status || '—', class: 'status-unknown' };
   return <span className={`status-badge ${cfg.class}`}>{cfg.label}</span>;
+};
+
+const getPaymentMethodBadge = (method, orderStatus, paymentStatus) => {
+  const methodConfig = {
+    'stripe': { label: 'Carte bancaire', class: 'payment-card' },
+    'crypto': { label: 'Crypto', class: 'payment-crypto' },
+    'coupon': { label: 'Coupon', class: 'payment-coupon' },
+    'coupon_partial': { label: 'Coupon + Carte', class: 'payment-coupon-partial' },
+    'card': { label: 'Carte bancaire', class: 'payment-card' },
+    'bitcoin': { label: 'Crypto', class: 'payment-crypto' },
+    'ethereum': { label: 'Crypto', class: 'payment-crypto' },
+  };
+
+  // Si pas de méthode ou méthode vide
+  if (!method || method === '' || method === 'undefined' || method === 'null') {
+    // Pour toutes les commandes sans méthode définie, afficher "Non spécifié"
+    return <span className="payment-badge payment-unknown">Non spécifié</span>;
+  }
+
+  const cfg = methodConfig[method] || { label: method, class: 'payment-unknown' };
+  return <span className={`payment-badge ${cfg.class}`}>{cfg.label}</span>;
 };
 
 /* ===== Normalisation serveur -> UI ===== */
@@ -69,6 +91,8 @@ const normalizeOrder = (o, idx = 0) => {
     status: o.status ?? 'confirmed',
     notes: o.notes ?? '',
     totalAmount: Number(o.totalAmount ?? o.total ?? 0),
+    paymentStatus: o.paymentStatus ?? 'Pending',
+    paymentMethod: o.paymentDetails?.method ?? o.intendedPaymentMethod ?? 'Non spécifié',
     client: {
       name: client?.name ?? 'Client inconnu',
       clinicName: client?.clinicName ?? client?.company ?? '—',
@@ -229,9 +253,17 @@ export default function SupplierOrders() {
         <SupplierNavbar />
         <NotificationButton />
         <NotificationPanel />
-        <div className="loading-spinner">
-          <div className="spinner" />
-          <p>Chargement des commandes...</p>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '400px'
+        }}>
+          <LoadingSpinner
+            size="large"
+            message="Chargement des commandes..."
+            color="primary"
+          />
         </div>
       </div>
     );
@@ -314,6 +346,7 @@ export default function SupplierOrders() {
                     <th>Date</th>
                     <th>Produits</th>
                     <th>Montant Total</th>
+                    <th>Mode de Paiement</th>
                     <th>Statut</th>
                     <th>Actions</th>
                     <th>Détails</th>
@@ -348,6 +381,7 @@ export default function SupplierOrders() {
                         </div>
                       </td>
                       <td><strong>{formatPrice(order.totalAmount)}</strong></td>
+                      <td>{getPaymentMethodBadge(order.paymentMethod, order.status, order.paymentStatus)}</td>
                       <td>{getStatusBadge(order.status)}</td>
                       <td>
                         <div className="order-actions">
@@ -499,6 +533,21 @@ export default function SupplierOrders() {
                 <div className="info-row">
                   <span className="label">Statut:</span>
                   <span className="value">{getStatusBadge(selectedOrder.status)}</span>
+                </div>
+                <div className="info-row">
+                  <span className="label">Mode de Paiement:</span>
+                  <span className="value">{getPaymentMethodBadge(selectedOrder.paymentMethod, selectedOrder.status, selectedOrder.paymentStatus)}</span>
+                </div>
+                <div className="info-row">
+                  <span className="label">Statut Paiement:</span>
+                  <span className="value">
+                    <span className={`payment-status ${selectedOrder.paymentStatus?.toLowerCase()}`}>
+                      {selectedOrder.paymentStatus === 'Paid' ? '✅ Payé' :
+                        selectedOrder.paymentStatus === 'Pending' ? '⏳ En attente' :
+                          selectedOrder.paymentStatus === 'Failed' ? '❌ Échoué' :
+                            selectedOrder.paymentStatus || '—'}
+                    </span>
+                  </span>
                 </div>
                 {selectedOrder.deliveryAddress && (
                   <div className="info-row">

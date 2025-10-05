@@ -1,94 +1,129 @@
 import React, { useState, useEffect } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import api from '../services/api';
-import { STRIPE_PUBLISHABLE_KEY } from '../config/environment';
+import CardPaymentModal from './CardPaymentModal';
+import CryptoPaymentModal from './CryptoPaymentModal';
 import '../style/PaymentModal.css';
 
-const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
+const PaymentModal = ({ isOpen, onClose, order, onPaymentSuccess }) => {
+  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [showCardModal, setShowCardModal] = useState(false);
+  const [showCryptoModal, setShowCryptoModal] = useState(false);
 
-const CARD_ELEMENT_OPTIONS = {
-  style: {
-    base: {
-      color: "#32325d",
-      fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-      fontSmoothing: "antialiased",
-      fontSize: "16px",
-      "::placeholder": {
-        color: "#aab7c4",
-      },
-    },
-    invalid: {
-      color: "#fa755a",
-      iconColor: "#fa755a",
-    },
-  },
-};
-
-const CheckoutForm = ({ order, onPaySuccess, onCancel }) => {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [savedCards, setSavedCards] = useState([]);
-  const [selectedCard, setSelectedCard] = useState('');
-  const [isCardFormVisible, setCardFormVisible] = useState(true);
+  // Coupon states
   const [couponCode, setCouponCode] = useState('');
-  const [couponLoading, setCouponLoading] = useState(false);
-  const [couponError, setCouponError] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [discountAmount, setDiscountAmount] = useState(0);
-  const [finalAmount, setFinalAmount] = useState(order.totalAmount);
+  const [finalAmount, setFinalAmount] = useState(0);
+  const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
 
+  // Initialize finalAmount when order changes
   useEffect(() => {
-    const fetchPaymentMethods = async () => {
-      if (!stripe) return;
-      setLoading(true);
-      setErrorMessage('');
-      try {
-        const { data } = await api.get('/payments/payment-methods');
-        setSavedCards(data);
-        if (data.length > 0) {
-          setSelectedCard(data[0].id);
-          setCardFormVisible(false);
-        } else {
-          setCardFormVisible(true);
-        }
-      } catch (error) {
-        console.error("Failed to fetch saved cards:", error);
-        setCardFormVisible(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPaymentMethods();
-  }, [stripe]);
+    if (order?.totalAmount) {
+      setFinalAmount(order.totalAmount);
+    }
+  }, [order]);
+
+  // Log coupon state changes
+  useEffect(() => {
+    console.log('PaymentModal coupon state changed:', {
+      appliedCoupon,
+      discountAmount,
+      finalAmount
+    });
+  }, [appliedCoupon, discountAmount, finalAmount]);
+
+  if (!isOpen || !order) return null;
+
+  const handleClose = () => {
+    // Reset coupon state when closing
+    setAppliedCoupon(null);
+    setDiscountAmount(0);
+    setFinalAmount(order?.totalAmount || 0);
+    setCouponCode('');
+    setCouponError('');
+    onClose();
+  };
+
 
   const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) {
-      setCouponError('Please enter a coupon code');
-      return;
-    }
+    if (!couponCode.trim()) return;
 
     setCouponLoading(true);
     setCouponError('');
 
     try {
-      const response = await api.post(`/payments/apply-coupon/${order._id}`, {
-        couponCode: couponCode.trim().toUpperCase()
+      console.log('Applying coupon - Full order object:', order);
+      console.log('Applying coupon - Order items:', order?.items);
+      console.log('Applying coupon - Product IDs:', order.items?.map(item => item.product) || []);
+      console.log('Applying coupon - Order amount:', order?.totalAmount || 0);
+
+      const response = await api.post('/coupons/validate', {
+        code: couponCode,
+        orderAmount: order?.totalAmount || 0,
+        productIds: order.items?.map(item => item.product) || []
       });
 
+      console.log('Coupon response - Full data:', response.data);
+      console.log('Coupon response - Success:', response.data.success);
+      console.log('Coupon response - Coupon object:', response.data.coupon);
+      console.log('Coupon response - Discount amount from coupon:', response.data.coupon?.discountAmount, 'Type:', typeof response.data.coupon?.discountAmount);
+      console.log('Coupon response - Final amount from coupon:', response.data.coupon?.finalAmount, 'Type:', typeof response.data.coupon?.finalAmount);
+
       if (response.data.success) {
+        console.log('Setting coupon data:', {
+          coupon: response.data.coupon,
+          discountAmount: response.data.coupon?.discountAmount,
+          finalAmount: response.data.coupon?.finalAmount
+        });
+
+        // Ensure we have valid numbers and proper validation
+        const discount = parseFloat(response.data.coupon?.discountAmount || 0);
+        const final = parseFloat(response.data.coupon?.finalAmount || 0);
+        const originalAmount = order?.totalAmount || 0;
+
+        console.log('Parsed values:', {
+          discount,
+          final,
+          originalAmount,
+          isValidDiscount: !isNaN(discount) && discount > 0,
+          isValidFinal: !isNaN(final) && final > 0
+        });
+
+        // Validate the coupon data
+        if (isNaN(discount) || discount < 0) {
+          setCouponError('Invalid discount amount received from server');
+          return;
+        }
+
+        if (isNaN(final) || final < 0) {
+          setCouponError('Invalid final amount received from server');
+          return;
+        }
+
+        if (final > originalAmount) {
+          setCouponError('Final amount cannot be greater than original amount');
+          return;
+        }
+
+        // Additional validation: ensure discount makes sense
+        if (discount > originalAmount) {
+          setCouponError('Discount cannot be greater than original amount');
+          return;
+        }
+
         setAppliedCoupon(response.data.coupon);
-        setDiscountAmount(response.data.discountAmount);
-        setFinalAmount(response.data.finalAmount);
+        setDiscountAmount(discount);
+        setFinalAmount(final);
         setCouponError('');
+        console.log('State updated - discountAmount:', discount, 'finalAmount:', final);
       } else {
         setCouponError(response.data.message || 'Invalid coupon code');
       }
     } catch (error) {
-      console.error('Coupon application error:', error);
-      setCouponError(error.response?.data?.message || 'Failed to apply coupon');
+      console.error('Coupon error:', error);
+      console.error('Error response:', error.response?.data);
+      setCouponError(error.response?.data?.message || 'Error applying coupon');
     } finally {
       setCouponLoading(false);
     }
@@ -97,341 +132,147 @@ const CheckoutForm = ({ order, onPaySuccess, onCancel }) => {
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
     setDiscountAmount(0);
-    setFinalAmount(order.totalAmount);
+    setFinalAmount(order?.totalAmount || 0);
     setCouponCode('');
     setCouponError('');
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setLoading(true);
-    setErrorMessage('');
-
-    if (!stripe || !elements) {
-      setErrorMessage('Stripe has not loaded yet. Please wait a moment.');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      // Get client secret for card payment with final amount
-      const res = await api.post(`/payments/create-payment-intent/${order._id}`, {
-        amount: finalAmount
-      });
-      const { clientSecret } = res.data;
-
-      let paymentMethodPayload;
-
-      if (selectedCard && !isCardFormVisible) {
-        // Use saved card - find the Stripe payment method ID
-        const selectedCardData = savedCards.find(card => card.id === selectedCard);
-        if (!selectedCardData) {
-          setErrorMessage('Selected payment method not found. Please try again.');
-          setLoading(false);
-          return;
-        }
-        paymentMethodPayload = selectedCardData.stripePaymentMethodId;
-      } else {
-        // Use new card
-        const cardElement = elements.getElement(CardElement);
-        paymentMethodPayload = {
-          card: cardElement,
-          billing_details: {
-            name: document.getElementById('cardholder-name')?.value?.trim() || 'Card Holder',
-          },
-        };
-      }
-
-      const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: paymentMethodPayload,
-      });
-
-      if (error) {
-        console.error('Stripe payment error:', error);
-        setErrorMessage(`Payment failed: ${error.message}${error.code ? ` (Code: ${error.code})` : ''}`);
-      } else if (paymentIntent.status === 'succeeded') {
-        // Update order status in backend after successful payment
-        try {
-          console.log('Updating order status with paymentIntentId:', paymentIntent.id);
-          const updateData = {
-            paymentIntentId: paymentIntent.id
-          };
-
-          // Include coupon information if a coupon was applied
-          if (appliedCoupon && discountAmount > 0) {
-            updateData.coupon = appliedCoupon;
-            updateData.discountAmount = discountAmount;
-            updateData.finalAmount = finalAmount;
-          }
-
-          const updateResponse = await api.post(`/payments/update-order-payment-status/${order._id}`, updateData);
-          console.log('Order update response:', updateResponse.data);
-          setLoading(false); // Reset loading state before calling success callback
-          console.log('Calling onPaySuccess callback...');
-
-          // Safety check before calling callback
-          if (typeof onPaySuccess === 'function') {
-            // Close modal immediately before calling success callback
-            onCancel();
-            onPaySuccess();
-          } else {
-            console.error('onPaySuccess is not a function:', typeof onPaySuccess);
-          }
-        } catch (updateError) {
-          console.error('Error updating order after payment:', updateError);
-          console.error('Update error details:', updateError.response?.data);
-          setLoading(false); // Reset loading state on error
-
-          if (updateError.response?.status === 404) {
-            setErrorMessage('Order not found. Please refresh and try again.');
-          } else if (updateError.response?.status === 403) {
-            setErrorMessage('Unauthorized. Please log in again.');
-          } else if (updateError.response?.status === 500) {
-            setErrorMessage(`Server error: ${updateError.response?.data?.message || 'Failed to update order status.'}`);
-          } else {
-            setErrorMessage(`Payment succeeded but failed to update order status: ${updateError.response?.data?.message || updateError.message}`);
-          }
-        }
-      } else {
-        setErrorMessage('Payment could not be completed. Please try again.');
-      }
-    } catch (error) {
-      console.error('Payment error:', error);
-      console.error('Full error details:', error.response?.data);
-
-      if (error.response?.status === 500) {
-        setErrorMessage(`Server error: ${error.response?.data?.message || 'Internal server error. Please try again.'}`);
-      } else if (error.response?.status === 400) {
-        setErrorMessage(`Payment error: ${error.response?.data?.message || error.message}`);
-      } else if (error.response?.status === 404) {
-        setErrorMessage(`Order not found. Please refresh and try again.`);
-      } else if (error.response?.status === 403) {
-        setErrorMessage(`Unauthorized. Please log in again.`);
-      } else {
-        setErrorMessage(`Payment failed: ${error.response?.data?.message || error.message}`);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="card-payment-form">
-      <div className="payment-modal-body">
-        <div className="payment-section">
-          <h3>Card Payment</h3>
-          <p>Complete your payment with a credit or debit card</p>
-
-          {loading && savedCards.length === 0 && <p>Loading saved cards...</p>}
-
-          {!loading && savedCards.length > 0 && !isCardFormVisible && (
-            <div className="saved-card-section">
-              <label htmlFor="saved-card-select">Pay with a saved card</label>
-              <select
-                id="saved-card-select"
-                value={selectedCard}
-                onChange={(e) => setSelectedCard(e.target.value)}
-                className="saved-card-select"
-              >
-                {savedCards.map(card => (
-                  <option key={card.id} value={card.id}>
-                    {card.brand.toUpperCase()} ending in {card.last4}
-                  </option>
-                ))}
-              </select>
-
-              <button type="button" className="link-button" onClick={() => { setCardFormVisible(true); setSelectedCard(''); }}>
-                Pay with a new card
-              </button>
-            </div>
-          )}
-
-          {isCardFormVisible && (
-            <div className="new-card-section">
-              <div className="card-element-container">
-                <label htmlFor="card-element">Card Details</label>
-                <CardElement
-                  id="card-element"
-                  options={CARD_ELEMENT_OPTIONS}
-                  onChange={(event) => {
-                    if (event.error) {
-                      setErrorMessage(event.error.message);
-                    } else {
-                      setErrorMessage('');
-                    }
-                  }}
-                />
-              </div>
-
-              <div className="cardholder-name-field">
-                <label htmlFor="cardholder-name">Cardholder Name *</label>
-                <input
-                  id="cardholder-name"
-                  type="text"
-                  placeholder="Name as on card"
-                  className="cardholder-input"
-                  required
-                />
-              </div>
-
-              {savedCards.length > 0 && (
-                <button type="button" className="link-button" onClick={() => { setCardFormVisible(false); setSelectedCard(savedCards[0]?.id || ''); }}>
-                  Use a saved card
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Coupon Section */}
-          <div className="coupon-section">
-            <h4>🎟️ Coupon Code</h4>
-            <div className="coupon-input-group">
-              <input
-                type="text"
-                placeholder="Enter coupon code"
-                value={couponCode}
-                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                className="coupon-input"
-                disabled={couponLoading || appliedCoupon}
-              />
-              {couponLoading && (
-                <div className="loading-spinner">⏳</div>
-              )}
-            </div>
-
-            {couponError && (
-              <div className="coupon-error" style={{ color: '#e53e3e', fontSize: '0.9rem', marginTop: '8px' }}>
-                {couponError}
-              </div>
-            )}
-
-            {appliedCoupon && (
-              <div className="coupon-details">
-                <div className="coupon-info">
-                  <h4>✅ Coupon Applied: {appliedCoupon.code}</h4>
-                  <div className="discount-breakdown">
-                    <div className="price-line">
-                      <span>Original Amount:</span>
-                      <span>€{order.totalAmount.toFixed(2)}</span>
-                    </div>
-                    <div className="price-line discount">
-                      <span>Discount ({appliedCoupon.type === 'percentage' ? `${appliedCoupon.value}%` : `€${appliedCoupon.value}`}):</span>
-                      <span>-€{discountAmount.toFixed(2)}</span>
-                    </div>
-                    <div className="price-line total">
-                      <span>Final Amount:</span>
-                      <span>€{finalAmount.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleRemoveCoupon}
-                  style={{
-                    background: 'linear-gradient(135deg, #f56565 0%, #e53e3e 100%)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '8px 16px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    marginTop: '12px',
-                    fontWeight: '500',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  Remove Coupon
-                </button>
-              </div>
-            )}
-
-            {!appliedCoupon && (
-              <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
-                <button
-                  type="button"
-                  onClick={handleApplyCoupon}
-                  disabled={couponLoading || !couponCode.trim()}
-                  className="coupon-apply-btn"
-                  style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    opacity: (!couponCode.trim() || couponLoading) ? 0.6 : 1,
-                    transition: 'all 0.3s ease',
-                    flex: 1
-                  }}
-                >
-                  {couponLoading ? 'Applying...' : 'Apply Coupon'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCouponCode('');
-                    setCouponError('');
-                    setAppliedCoupon(null);
-                    setDiscountAmount(0);
-                    setFinalAmount(order.totalAmount);
-                  }}
-                  className="no-coupon-btn"
-                  style={{
-                    background: 'linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%)',
-                    color: '#4a5568',
-                    border: '1px solid #e2e8f0',
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    flex: 1,
-                    fontWeight: '500'
-                  }}
-                >
-                  No Coupon
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {errorMessage && (
-        <div className="error-message">
-          {errorMessage}
-        </div>
-      )}
-
-      <div className="modal-actions">
-        <button type="button" className="cancel-btn" onClick={onCancel}>
-          Cancel
-        </button>
-        <button type="submit" className="pay-btn" disabled={loading}>
-          {loading ? 'Processing...' : `Pay €${finalAmount.toFixed(2)}`}
-        </button>
-      </div>
-    </form>
-  );
-};
-
-const PaymentModal = ({ order, onPaySuccess, onCancel }) => {
-  if (!order) return null;
-
   return (
     <div className="modal-overlay">
       <div className="payment-modal">
+        {/* 1. HEADER SECTION */}
         <div className="payment-modal-header">
-          <h2>Payment for Order #{order.orderNumber}</h2>
-          <button className="close-btn" onClick={onCancel}>×</button>
+          <h2>Payment for Order #{order?.orderNumber || 'Unknown'}</h2>
+          <button className="close-btn" onClick={handleClose}>×</button>
         </div>
 
-        <Elements stripe={stripePromise}>
-          <CheckoutForm
-            order={order}
-            onPaySuccess={onPaySuccess}
-            onCancel={onCancel}
-          />
-        </Elements>
+        {/* 2. COUPON SECTION */}
+        <div className="coupon-section">
+          <h4>🎟️ DO YOU HAVE A COUPON?</h4>
+          <p>Enter a coupon code to get a discount on your order</p>
+          <div className="coupon-input-group">
+            <input
+              type="text"
+              placeholder="ENTER COUPON CODE"
+              className="coupon-input"
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+            />
+            <button
+              className="apply-coupon-btn"
+              onClick={handleApplyCoupon}
+              disabled={couponLoading || !couponCode.trim()}
+            >
+              {couponLoading ? 'Applying...' : 'Apply Coupon'}
+            </button>
+            <button
+              className="no-coupon-btn"
+              onClick={handleRemoveCoupon}
+            >
+              No Coupon
+            </button>
+          </div>
+          {couponError && (
+            <div className="coupon-error" style={{ color: '#e53e3e', fontSize: '0.9rem', marginTop: '8px' }}>
+              {couponError}
+            </div>
+          )}
+          {appliedCoupon && (
+            <div className="coupon-details">
+              <div className="coupon-info">
+                <span className="coupon-code">✅ {appliedCoupon.code}</span>
+                <span className="coupon-description">{appliedCoupon.description}</span>
+              </div>
+              <div className="discount-info">
+                <span className="discount-amount">-€{discountAmount.toFixed(2)}</span>
+                <span className="final-amount">Final: €{finalAmount.toFixed(2)}</span>
+                {/* Debug info */}
+                <div style={{ fontSize: '10px', color: '#666' }}>
+                  Debug: discountAmount={discountAmount}, finalAmount={finalAmount}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 3. PAYMENT METHOD SELECTION */}
+        <div className="payment-method-section">
+          <h3>Choisir le mode de paiement</h3>
+          <div className="payment-method-options">
+            <div
+              className={`payment-option ${paymentMethod === 'card' ? 'selected' : ''}`}
+              onClick={() => setPaymentMethod('card')}
+            >
+              <div className="payment-icon">💳</div>
+              <div className="payment-info">
+                <h4>Carte bancaire</h4>
+                <p>Payer avec Visa, Mastercard ou autres cartes</p>
+              </div>
+            </div>
+
+            <div
+              className={`payment-option ${paymentMethod === 'crypto' ? 'selected' : ''}`}
+              onClick={() => setPaymentMethod('crypto')}
+            >
+              <div className="payment-icon">₿</div>
+              <div className="payment-info">
+                <h4>Cryptomonnaie</h4>
+                <p>Payer avec Bitcoin, Ethereum et autres crypto</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* PAYMENT METHOD SELECTION ONLY - NO CONTENT BELOW */}
+
+        {/* FOOTER BUTTONS */}
+        <div className="payment-modal-footer">
+          <button className="cancel-btn" onClick={handleClose}>
+            Annuler
+          </button>
+          <button
+            className="pay-btn"
+            onClick={() => {
+              if (paymentMethod === 'card') {
+                setShowCardModal(true);
+              } else if (paymentMethod === 'crypto') {
+                setShowCryptoModal(true);
+              }
+            }}
+          >
+            Continuer
+          </button>
+        </div>
       </div>
+
+      {/* Payment Modals */}
+      <CardPaymentModal
+        isOpen={showCardModal}
+        onClose={() => {
+          setShowCardModal(false);
+          // Don't reset coupon data when closing card modal
+        }}
+        order={order}
+        appliedCoupon={appliedCoupon}
+        discountAmount={discountAmount}
+        finalAmount={finalAmount}
+        onSuccess={() => {
+          setShowCardModal(false);
+          onPaymentSuccess();
+        }}
+      />
+
+      {showCryptoModal && (
+        <CryptoPaymentModal
+          isOpen={showCryptoModal}
+          order={order}
+          onPaySuccess={() => {
+            setShowCryptoModal(false);
+            onPaymentSuccess();
+          }}
+          onCancel={() => setShowCryptoModal(false)}
+        />
+      )}
     </div>
   );
 };

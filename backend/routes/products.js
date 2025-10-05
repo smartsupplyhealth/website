@@ -21,6 +21,9 @@ router.post('/categories', auth, productController.addCategory);
 // GET products for the client catalog view
 router.get('/client-dashboard/catalog', auth, productController.getProductsForClient);
 
+// GET similar products by category
+router.get('/similar/:productId', auth, productController.getSimilarProducts);
+
 // GET a single product by ID (must be last among GET routes)
 router.get('/:id', auth, productController.getProductById);
 
@@ -31,7 +34,7 @@ router.put('/:id', auth, upload.array('images', 10), productController.updatePro
 router.post('/:id/images', auth, upload.array('images', 10), productController.uploadProductImages);
 
 // Ajuster le stock
- router.patch('/:id/stock', auth, productController.updateStock);
+router.patch('/:id/stock', auth, productController.updateStock);
 
 // DELETE a product by ID
 router.delete('/:id', auth, productController.deleteProduct);

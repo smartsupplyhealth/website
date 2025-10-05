@@ -2,12 +2,26 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 
 const generateOrderNumber = async () => {
-  const count = await Order.countDocuments();
-  return `CMD-${String(count + 1).padStart(6, '0')}`;
+  // Find the highest existing order number
+  const lastOrder = await Order.findOne({}, {}, { sort: { orderNumber: -1 } });
+
+  if (!lastOrder || !lastOrder.orderNumber) {
+    return 'CMD-000001';
+  }
+
+  // Extract the number from the last order number
+  const match = lastOrder.orderNumber.match(/CMD-(\d+)/);
+  if (match) {
+    const lastNumber = parseInt(match[1]);
+    return `CMD-${String(lastNumber + 1).padStart(6, '0')}`;
+  }
+
+  // Fallback if no valid order number found
+  return 'CMD-000001';
 };
 
 const createOrder = async (orderData) => {
-  const { clientId, products, deliveryAddress, notes, totalAmount } = orderData;
+  const { clientId, products, deliveryAddress, notes, totalAmount, paymentMethod } = orderData;
 
   // Validate product stock
   for (const item of products) {
@@ -31,16 +45,15 @@ const createOrder = async (orderData) => {
     notes,
     // status will use the default 'pending' from the model
     paymentStatus: 'Pending',
+    // Store the intended payment method
+    paymentDetails: paymentMethod ? { method: paymentMethod } : null,
   });
 
   await order.save();
 
-  // Decrease stock for each product
-  for (const item of products) {
-    await Product.findByIdAndUpdate(item.product, {
-      $inc: { stock: -item.quantity }
-    });
-  }
+  // Note: Stock is NOT deducted here - it will be deducted only after payment confirmation
+  // This prevents stock from being locked for unpaid orders
+  console.log(`📦 Order ${order.orderNumber} created - stock will be deducted after payment confirmation`);
 
   return order;
 };

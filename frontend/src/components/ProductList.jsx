@@ -34,6 +34,7 @@ export default function ProductList({ onEdit, reload, onAdd }) {
   const dropdownRef = useRef(null);
   const { showNotification } = useNotifications();
 
+
   // Close dropdown when clicking outside
   useEffect(() => {
     if (!openDropdownId) return;
@@ -68,7 +69,14 @@ export default function ProductList({ onEdit, reload, onAdd }) {
         const res = await axios.post(`http://localhost:5000/api/scrape/${analyzingProductId}`, {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setOffers(res.data.offers || []);
+
+        if (res.data.success) {
+          setOffers(res.data.offers || []);
+          showNotification(res.data.message || 'Analyse des concurrents terminée', 'success');
+        } else {
+          setCompetitorError(res.data.message || 'Erreur lors de l\'analyse');
+          showNotification(res.data.message || 'Erreur d\'analyse', 'error');
+        }
       } catch (err) {
         const errorMsg = err.response?.data?.message || 'Une erreur est survenue.';
         setCompetitorError(errorMsg);
@@ -264,7 +272,14 @@ export default function ProductList({ onEdit, reload, onAdd }) {
       });
 
       console.log('Price simulation response:', res.data);
-      setSimulationData(res.data);
+
+      if (res.data.success) {
+        setSimulationData(res.data);
+        showNotification(res.data.message || 'Simulation de prix terminée', 'success');
+      } else {
+        setSimulationError(res.data.message || 'Erreur lors de la simulation');
+        showNotification(res.data.message || 'Erreur de simulation', 'error');
+      }
     } catch (err) {
       console.error('Error in price simulation:', err);
       console.error('Error details:', err.response?.data);

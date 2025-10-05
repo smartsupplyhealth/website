@@ -7,6 +7,7 @@ import ClientNavbar from './dashboard/ClientNavbar';
 import PaymentModal from './PaymentModal';
 import NotificationButton from './NotificationButton';
 import NotificationPanel from './NotificationPanel';
+import { useNotifications } from '../contexts/NotificationContext';
 
 const Orders = () => {
   const [searchParams] = useSearchParams();
@@ -20,6 +21,11 @@ const Orders = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [orderToPay, setOrderToPay] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successOrderNumber, setSuccessOrderNumber] = useState('');
+  const [isRetryPayment, setIsRetryPayment] = useState(false);
+
+  const { showNotification } = useNotifications();
 
   // Handle URL parameters for filtering
   useEffect(() => {
@@ -109,28 +115,24 @@ const Orders = () => {
     console.log('Payment success - refreshing orders...');
 
     // Determine the context based on the order being paid
-    const isRetryPayment = orderToPay && orderToPay.paymentStatus === 'Pending';
+    const retryPayment = orderToPay && orderToPay.paymentStatus === 'Pending';
     const orderNumber = orderToPay ? orderToPay.orderNumber : 'N/A';
 
+    // Set success modal data
+    setIsRetryPayment(retryPayment);
+    setSuccessOrderNumber(orderNumber);
+    setShowSuccessModal(true);
     setOrderToPay(null);
-
-    // Show contextual success message based on payment type
-    let successMessage;
-    if (isRetryPayment) {
-      successMessage = `✅ Paiement retry réussi ! Votre commande #${orderNumber} en attente a été confirmée. 🎉`;
-    } else {
-      successMessage = `✅ Paiement direct réussi ! Votre commande #${orderNumber} a été confirmée. 🎉`;
-    }
-
-    if (window.notify) {
-      window.notify(successMessage, 'success');
-    } else {
-      alert(successMessage);
-    }
 
     // Refresh orders immediately to show updated data
     console.log('Refreshing orders after payment success...');
     fetchOrders();
+  };
+
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+    setSuccessOrderNumber('');
+    setIsRetryPayment(false);
   };
 
   const handlePaymentCancel = () => {
@@ -506,10 +508,11 @@ const Orders = () => {
                       <div className="payment-method">
                         <span className="label">Méthode de Paiement :</span>
                         <span className="value">
-                          {selectedOrder.paymentDetails.method === 'stripe' ? '💳 Carte Bancaire' :
-                            selectedOrder.paymentDetails.method === 'coupon' ? '🎫 Coupon' :
-                              selectedOrder.paymentDetails.method === 'coupon_partial' ? '🎫 Coupon + 💳 Carte' :
-                                selectedOrder.paymentDetails.method}
+                          {selectedOrder.paymentDetails.method === 'stripe' ? 'Carte bancaire' :
+                            selectedOrder.paymentDetails.method === 'crypto' ? 'Crypto' :
+                              selectedOrder.paymentDetails.method === 'coupon' ? 'Coupon' :
+                                selectedOrder.paymentDetails.method === 'coupon_partial' ? 'Coupon + Carte' :
+                                  selectedOrder.paymentDetails.method || 'En attente'}
                         </span>
                       </div>
                     )}
@@ -556,10 +559,48 @@ const Orders = () => {
       {/* Payment modal */}
       {orderToPay && (
         <PaymentModal
+          isOpen={!!orderToPay}
           order={orderToPay}
-          onPaySuccess={handlePaymentSuccess}
-          onCancel={handlePaymentCancel}
+          onPaymentSuccess={handlePaymentSuccess}
+          onClose={handlePaymentCancel}
         />
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="success-modal-overlay">
+          <div className="success-modal">
+            <div className="success-modal-header">
+              <h2>🎉 Paiement Réussi!</h2>
+            </div>
+            <div className="success-modal-body">
+              <div className="success-icon">
+                {isRetryPayment ? '🔄' : '💳'}
+              </div>
+              <h3>
+                {isRetryPayment
+                  ? `Paiement retry réussi !`
+                  : `Paiement direct réussi !`
+                }
+              </h3>
+              <p>
+                Votre commande <strong>#{successOrderNumber}</strong> a été confirmée avec succès.
+              </p>
+              <div className="success-details">
+                <p><strong>Statut:</strong> Payé et confirmé</p>
+                <p><strong>Prochaines étapes:</strong> Préparation et livraison</p>
+              </div>
+            </div>
+            <div className="success-modal-footer">
+              <button
+                className="continue-btn"
+                onClick={handleCloseSuccessModal}
+              >
+                ✅ Parfait !
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

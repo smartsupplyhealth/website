@@ -79,9 +79,14 @@ export const NotificationProvider = ({ children }) => {
       if (response.ok) {
         const data = await response.json();
         setUnreadCount(data.data.unreadCount);
+      } else if (response.status === 401) {
+        // Token expired, clear it
+        localStorage.removeItem('token');
+        console.log('Token expired, cleared from storage');
       }
     } catch (error) {
       console.error('Error fetching unread count:', error);
+      // Don't retry immediately on error
     }
   };
 
@@ -311,12 +316,15 @@ export const NotificationProvider = ({ children }) => {
     }, 4000);
   };
 
-  // Auto-refresh unread count every 30 seconds
+  // Auto-refresh unread count every 30 seconds - DISABLED to prevent infinite loop
   useEffect(() => {
     if (token) {
-      fetchUnreadCount();
-      const interval = setInterval(fetchUnreadCount, 30000);
-      return () => clearInterval(interval);
+      // Only fetch once on mount, no auto-refresh for now
+      const timeoutId = setTimeout(() => {
+        fetchUnreadCount();
+      }, 2000); // Delay to prevent immediate calls
+
+      return () => clearTimeout(timeoutId);
     }
   }, [token]);
 

@@ -73,6 +73,15 @@ exports.getSupplierOrders = async (req, res) => {
             return res.json({
                 success: true,
                 data: [],
+                allOrders: [],
+                stats: {
+                    totalOrders: 0,
+                    cancelledOrders: 0,
+                    netOrders: 0,
+                    totalRevenue: 0,
+                    cancelledRevenue: 0,
+                    netRevenue: 0
+                },
                 pagination: {
                     totalItems: 0,
                     totalPages: 0,
@@ -89,10 +98,25 @@ exports.getSupplierOrders = async (req, res) => {
             filter.status = status;
         }
 
-        // Calculate pagination
+        // Get ALL orders for statistics calculation (not paginated)
+        const allOrders = await Order.find({ 'items.product': { $in: productIds } })
+            .populate('client', 'name email clinicName phone');
+
+        // Calculate statistics
+        const totalOrders = allOrders.length;
+        const cancelledOrders = allOrders.filter(order => order.status === 'cancelled').length;
+        const netOrders = totalOrders - cancelledOrders;
+
+        const totalRevenue = allOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+        const cancelledRevenue = allOrders
+            .filter(order => order.status === 'cancelled')
+            .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+        const netRevenue = totalRevenue - cancelledRevenue;
+
+        // Calculate pagination for the filtered results
         const skip = (parseInt(page) - 1) * parseInt(limit);
-        const totalOrders = await Order.countDocuments(filter);
-        const totalPages = Math.ceil(totalOrders / parseInt(limit));
+        const filteredTotalOrders = await Order.countDocuments(filter);
+        const totalPages = Math.ceil(filteredTotalOrders / parseInt(limit));
 
         // Fetch orders with pagination
         const orders = await Order.find(filter)
@@ -105,8 +129,17 @@ exports.getSupplierOrders = async (req, res) => {
         res.json({
             success: true,
             data: orders,
+            allOrders: allOrders, // Include all orders for client aggregation
+            stats: {
+                totalOrders,
+                cancelledOrders,
+                netOrders,
+                totalRevenue,
+                cancelledRevenue,
+                netRevenue
+            },
             pagination: {
-                totalItems: totalOrders,
+                totalItems: filteredTotalOrders,
                 totalPages: totalPages,
                 currentPage: parseInt(page),
                 hasNext: parseInt(page) < totalPages,

@@ -10,13 +10,14 @@ const Client = require('../models/Client');
 // Create a new order
 exports.createOrder = async (req, res) => {
   try {
-    const { products, deliveryAddress, notes, totalAmount } = req.body;
+    const { products, deliveryAddress, notes, totalAmount, paymentMethod } = req.body;
     const orderData = {
       clientId: req.user.id,
       products,
       deliveryAddress,
       notes,
       totalAmount,
+      paymentMethod, // Include the intended payment method
     };
     const order = await orderService.createOrder(orderData);
     const client = await Client.findById(req.user.id);
@@ -206,7 +207,7 @@ exports.getOrderById = async (req, res) => {
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
-    res.json(order);
+    res.json({ success: true, order });
   } catch (error) {
     console.error('Error fetching order by ID:', error);
     res.status(500).json({ message: 'Server error' });
@@ -242,21 +243,50 @@ exports.updateOrderStatus = async (req, res) => {
     // --- FIN DE LA LOGIQUE DE RESTOCKAGE ---
 
     order.status = status;
+
+    // Auto-update payment status to "Paid" when order is delivered
+    if (status === 'delivered' && order.paymentStatus !== 'Paid') {
+      order.paymentStatus = 'Paid';
+      console.log(`[UPDATE ORDER STATUS] Auto-updating payment status to "Paid" for order ${order.orderNumber}`);
+
+      // For crypto payments, ensure payment details are properly set
+      if (order.paymentDetails?.method === 'crypto' || order.paymentDetails?.method === 'bitcoin' || order.paymentDetails?.method === 'ethereum') {
+        if (!order.paymentDetails.transactionId) {
+          order.paymentDetails.transactionId = `crypto_${order._id}_${Date.now()}`;
+        }
+        console.log(`[UPDATE ORDER STATUS] Crypto payment confirmed for order ${order.orderNumber}`);
+      }
+    }
+
     await order.save();
 
     // Generate refund coupon if order is cancelled and was paid
     let couponCode = null;
     let refundAmount = 0;
-    if (status === 'cancelled' && order.paymentStatus === 'Paid') {
-      // Calculate refund amount (amount paid by card)
-      if (order.paymentDetails?.method === 'stripe') {
+    if (status === 'cancelled') {
+      console.log(`[CANCELLATION] Order payment status: ${order.paymentStatus}`);
+      console.log(`[CANCELLATION] Order total amount: ${order.totalAmount}`);
+
+      // Calculate refund amount - always create coupon for cancelled orders
+      if (order.paymentStatus === 'Paid') {
+        // For paid orders, refund the actual amount paid
+        if (order.paymentDetails?.method === 'stripe') {
+          refundAmount = order.totalAmount;
+        } else if (order.paymentDetails?.method === 'coupon_partial') {
+          refundAmount = order.totalAmount - (order.coupon?.discountAmount || 0);
+        } else {
+          refundAmount = order.totalAmount;
+        }
+      } else {
+        // For unpaid orders, create a coupon for the full amount as compensation
         refundAmount = order.totalAmount;
-      } else if (order.paymentDetails?.method === 'coupon_partial') {
-        refundAmount = order.totalAmount - (order.coupon?.discountAmount || 0);
       }
+
+      console.log(`[CANCELLATION] Calculated refund amount: ${refundAmount}`);
 
       if (refundAmount > 0) {
         couponCode = `REFUND_${Date.now()}_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+        console.log(`[CANCELLATION] Generated coupon code: ${couponCode}`);
 
         // Create coupon
         const coupon = new Coupon({
@@ -272,6 +302,7 @@ exports.updateOrderStatus = async (req, res) => {
         });
 
         await coupon.save();
+        console.log(`[CANCELLATION] Coupon saved to database`);
 
         // Add coupon info to order notes
         order.notes = order.notes + `\n[CANCELLED] Refund coupon: ${couponCode}`;
@@ -289,15 +320,46 @@ exports.updateOrderStatus = async (req, res) => {
       }
     }
 
+    // Send notification for payment confirmation if order was just delivered
+    if (status === 'delivered' && order.paymentStatus === 'Paid') {
+      try {
+        const notificationService = require('../services/notificationService');
+        await notificationService.createNotification(
+          order.client._id,
+          'Paiement Confirmé',
+          `Le paiement de votre commande #${order.orderNumber} a été confirmé automatiquement lors de la livraison.`,
+          'success',
+          order._id,
+          { orderNumber: order.orderNumber, paymentStatus: 'Paid' }
+        );
+        console.log(`[UPDATE ORDER STATUS] Payment confirmation notification sent for order ${order.orderNumber}`);
+      } catch (error) {
+        console.error('Error sending payment confirmation notification:', error);
+      }
+    }
+
     if (order.client && order.client.email) {
+      console.log(`[UPDATE ORDER STATUS] Sending email to: ${order.client.email}`);
+      console.log(`[UPDATE ORDER STATUS] Status: ${status}`);
+      console.log(`[UPDATE ORDER STATUS] Payment Status: ${order.paymentStatus}`);
+      console.log(`[UPDATE ORDER STATUS] Coupon code: ${couponCode}`);
+      console.log(`[UPDATE ORDER STATUS] Refund amount: ${refundAmount}`);
+
       const productDetailsList = order.items.map(item =>
         `<li>${item.product.name} (Quantité: ${item.quantity})</li>`
       ).join('');
 
       let subject, html;
 
-      if (status === 'cancelled' && couponCode) {
-        subject = `[SmartSupply Health] Commande ${order.orderNumber} annulée - Coupon de remboursement €${refundAmount.toFixed(2)}`;
+      if (status === 'cancelled') {
+        console.log(`[UPDATE ORDER STATUS] Using cancellation email template`);
+        console.log(`[UPDATE ORDER STATUS] Coupon code exists: ${!!couponCode}`);
+        console.log(`[UPDATE ORDER STATUS] Refund amount: ${refundAmount}`);
+        if (couponCode && refundAmount > 0) {
+          subject = `[SmartSupply Health] Commande ${order.orderNumber} annulée - Coupon de remboursement €${refundAmount.toFixed(2)}`;
+        } else {
+          subject = `[SmartSupply Health] Commande ${order.orderNumber} annulée`;
+        }
 
         // Format order items for email
         const orderItemsList = order.items.map(item =>
@@ -359,6 +421,7 @@ exports.updateOrderStatus = async (req, res) => {
                 </div>
               </div>
               
+              ${couponCode && refundAmount > 0 ? `
               <!-- Refund Coupon Section -->
               <div style="background: #fef5e7; border: 2px solid #f6ad55; border-radius: 8px; padding: 20px; margin: 25px 0;">
                 <h3 style="color: #c05621; margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">
@@ -389,6 +452,7 @@ exports.updateOrderStatus = async (req, res) => {
                   </div>
                 </div>
               </div>
+              ` : ''}
               
               <p style="font-size: 16px; color: #4a5568; margin: 25px 0 0 0; line-height: 1.6;">
                 Merci pour votre compréhension. Nous nous excusons pour tout inconvénient causé.
@@ -586,6 +650,10 @@ exports.cancelOrder = async (req, res) => {
 
     // Send email with coupon code
     if (order.client.email) {
+      console.log(`[CANCEL ORDER] Sending email to: ${order.client.email}`);
+      console.log(`[CANCEL ORDER] Coupon code: ${couponCode}`);
+      console.log(`[CANCEL ORDER] Refund amount: ${refundAmount}`);
+
       let subject, html;
 
       if (couponCode) {
@@ -624,7 +692,15 @@ exports.cancelOrder = async (req, res) => {
         `;
       }
 
-      await sendEmail(order.client.email, subject, html);
+      try {
+        await sendEmail(order.client.email, subject, html);
+        console.log(`[UPDATE ORDER STATUS] Email sent successfully to ${order.client.email}`);
+        console.log(`[UPDATE ORDER STATUS] Email subject: ${subject}`);
+      } catch (emailError) {
+        console.error(`[UPDATE ORDER STATUS] Error sending email:`, emailError);
+      }
+    } else {
+      console.log(`[CANCEL ORDER] No email address for client: ${order.client._id}`);
     }
 
     res.json({
@@ -672,5 +748,74 @@ exports.getMyOrderedProducts = async (req, res) => {
   } catch (error) {
     console.error('Error fetching ordered products:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Get budget analytics for client dashboard
+exports.getBudgetAnalytics = async (req, res) => {
+  try {
+    const clientId = req.user.id;
+
+    // Get all orders for this client
+    const orders = await Order.find({
+      client: clientId,
+      paymentStatus: 'Paid' // Only include paid orders
+    }).populate('items.product');
+
+    // Calculate monthly spending
+    const monthlySpending = [];
+    const currentDate = new Date();
+
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - i + 1, 1);
+
+      const monthOrders = orders.filter(order => {
+        const orderDate = new Date(order.createdAt);
+        return orderDate >= date && orderDate < nextMonth;
+      });
+
+      const totalAmount = monthOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+
+      monthlySpending.push({
+        month: date.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
+        amount: totalAmount
+      });
+    }
+
+    // Calculate category spending
+    const categorySpending = {};
+
+    orders.forEach(order => {
+      order.items.forEach(item => {
+        if (item.product && item.product.category) {
+          const category = item.product.category;
+          if (!categorySpending[category]) {
+            categorySpending[category] = 0;
+          }
+          categorySpending[category] += item.totalPrice;
+        }
+      });
+    });
+
+    const categorySpendingArray = Object.entries(categorySpending).map(([category, amount]) => ({
+      category,
+      amount
+    })).sort((a, b) => b.amount - a.amount);
+
+    res.json({
+      success: true,
+      data: {
+        monthlySpending,
+        categorySpending: categorySpendingArray
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching budget analytics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
   }
 };

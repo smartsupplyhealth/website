@@ -2,6 +2,7 @@ import React, { useState, useContext, useMemo } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CartContext } from "../../contexts/CartContext";
+import UserProfileModal from "../UserProfileModal";
 import "./navbar.css";
 import logo from "../../style/logo.jpg";
 
@@ -18,6 +19,7 @@ export default function ClientNavbar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // Panier
   const { cart } = useContext(CartContext) || { cart: [] };
@@ -109,11 +111,16 @@ export default function ClientNavbar() {
 
             {/* Zone utilisateur */}
             <div className="navbar-user-section">
-              <div className="navbar-user-avatar" aria-hidden="true">
+              <button
+                className="navbar-user-avatar navbar-user-avatar-clickable"
+                title={`Voir le profil de ${userName}`}
+                onClick={() => setIsProfileModalOpen(true)}
+                aria-label={`Voir le profil de ${userName}`}
+              >
                 {initials}
-              </div>
+              </button>
               <div className="navbar-user-info">
-                <p className="navbar-user-name" title={userName}>{userName}</p>
+                <p className="navbar-user-name">{userName}</p>
                 <p className="navbar-user-company" title={company}>{company}</p>
               </div>
               <button onClick={logout} className="navbar-logout-btn" aria-label="Se déconnecter">
@@ -170,9 +177,19 @@ export default function ClientNavbar() {
 
               {/* Bloc utilisateur (mobile) */}
               <div className="navbar-mobile-user">
-                <div className="navbar-user-avatar" aria-hidden="true">{initials}</div>
+                <button
+                  className="navbar-user-avatar navbar-user-avatar-clickable"
+                  title={`Voir le profil de ${userName}`}
+                  onClick={() => {
+                    setIsProfileModalOpen(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  aria-label={`Voir le profil de ${userName}`}
+                >
+                  {initials}
+                </button>
                 <div className="navbar-mobile-user-info">
-                  <p className="navbar-user-name" title={userName}>{userName}</p>
+                  <p className="navbar-user-name">{userName}</p>
                   <p className="navbar-user-company" title={company}>{company}</p>
                 </div>
               </div>
@@ -190,6 +207,13 @@ export default function ClientNavbar() {
           </div>
         )}
       </div>
+
+      {/* Modal de profil utilisateur */}
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        userType="client"
+      />
     </nav>
   );
 }

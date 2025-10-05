@@ -371,6 +371,24 @@
   box-shadow: var(--shadow-lg);
 }
 
+.navbar-user-avatar-clickable {
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-dark));
+  transition: var(--t-fast);
+}
+
+.navbar-user-avatar-clickable:hover {
+  transform: scale(1.1);
+  box-shadow: var(--shadow-lg);
+  background: linear-gradient(135deg, var(--primary-blue-dark), var(--primary-blue));
+}
+
+.navbar-user-avatar-clickable:active {
+  transform: scale(0.95);
+}
+
 .navbar-user-info {
   text-align: left;
   min-width: 0
@@ -381,6 +399,16 @@
   line-height: 1.1;
   font-size: 1rem;
   font-weight: 900;
+  color: var(--gray-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.navbar-user-name {
+  margin: 0;
+  font-weight: 600;
   color: var(--gray-900);
   white-space: nowrap;
   overflow: hidden;
@@ -443,6 +471,24 @@
 .navbar-mobile-user .navbar-user-avatar {
   width: 42px;
   height: 42px
+}
+
+.navbar-mobile-user .navbar-user-avatar-clickable {
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-dark));
+  transition: var(--t-fast);
+}
+
+.navbar-mobile-user .navbar-user-avatar-clickable:hover {
+  transform: scale(1.1);
+  box-shadow: var(--shadow-lg);
+  background: linear-gradient(135deg, var(--primary-blue-dark), var(--primary-blue));
+}
+
+.navbar-mobile-user .navbar-user-avatar-clickable:active {
+  transform: scale(0.95);
 }
 
 /* Bouton logout mobile */

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import ClientNavbar from './dashboard/ClientNavbar';
-import Notification from './common/Notification';
 import NotificationButton from './NotificationButton';
 import NotificationPanel from './NotificationPanel';
 import '../style/Profile.css';
@@ -11,13 +10,12 @@ const Profile = () => {
   const { user, setUser } = useAuth();
 
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
     phone: '',
     address: '',
     clinicName: '',
     clinicType: 'clinic',
-    currentPassword: '',     // 👈 nouveau
+    currentPassword: '',     // 👈 obligatoire maintenant
     password: '',
     confirmPassword: '',
   });
@@ -26,7 +24,6 @@ const Profile = () => {
   const [error, setError] = useState('');
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState('');
-  const [notification, setNotification] = useState({ message: '', type: '' });
 
   /* Auto clear success toast */
   useEffect(() => {
@@ -40,7 +37,6 @@ const Profile = () => {
   useEffect(() => {
     if (user) {
       setFormData({
-        name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
         address: user.address || '',
@@ -58,9 +54,6 @@ const Profile = () => {
   const validateField = (name, value, data) => {
     let e = '';
     switch (name) {
-      case 'name':
-        // Name field is now disabled, no validation needed
-        break;
       case 'phone':
         if (!/^\d{8}$/.test(value)) e = 'Le numéro de téléphone doit contenir exactement 8 chiffres.';
         break;
@@ -81,8 +74,8 @@ const Profile = () => {
         }
         break;
       case 'currentPassword':
-        // ancien obligatoire seulement si on change le mot de passe
-        if (data.password && (!value || value.length < 6)) {
+        // ancien mot de passe toujours obligatoire maintenant
+        if (!value || value.length < 6) {
           e = "L'ancien mot de passe est requis (≥ 6 caractères).";
         }
         break;
@@ -127,21 +120,22 @@ const Profile = () => {
     const validationErrors = {};
     let invalid = false;
 
-    // champs à valider à coup sûr (name is now disabled)
+    // champs à valider à coup sûr
     ['phone', 'address', 'clinicName'].forEach((key) => {
       const e = validateField(key, formData[key], formData);
       if (e) { validationErrors[key] = e; invalid = true; }
     });
 
-    // bloc mot de passe (requis si on veut changer)
-    if (formData.password || formData.confirmPassword || formData.currentPassword) {
-      // Si on veut changer le mot de passe, l'ancien mot de passe est requis
-      if (!formData.currentPassword) {
-        validationErrors.currentPassword = 'L\'ancien mot de passe est requis pour changer le mot de passe.';
-        invalid = true;
-      }
+    // ancien mot de passe toujours obligatoire maintenant
+    const currentPasswordError = validateField('currentPassword', formData.currentPassword, formData);
+    if (currentPasswordError) {
+      validationErrors.currentPassword = currentPasswordError;
+      invalid = true;
+    }
 
-      const list = ['currentPassword', 'password', 'confirmPassword'];
+    // bloc mot de passe (optionnel mais si on veut changer, validation complète)
+    if (formData.password || formData.confirmPassword) {
+      const list = ['password', 'confirmPassword'];
       list.forEach((key) => {
         const e = validateField(key, formData[key], formData);
         if (e) { validationErrors[key] = e; invalid = true; }
@@ -159,25 +153,26 @@ const Profile = () => {
     }
 
     try {
-      // on n'envoie email, name ni confirmPassword; on n'envoie currentPassword/password que si on change le mdp
+      // on n'envoie email ni confirmPassword; on envoie toujours currentPassword maintenant
       const {
         email,
-        name,
         confirmPassword,
         currentPassword,
         password,
         ...updateData
       } = formData;
 
-      const payload = { ...updateData };
+      const payload = {
+        ...updateData,
+        currentPassword: currentPassword  // toujours envoyé maintenant
+      };
       if (password) {
-        payload.currentPassword = currentPassword;
         payload.password = password;
       }
 
       const res = await api.put('/auth/profile', payload);
       setUser(res.data?.data?.user);
-      setNotification({ message: 'Profil mis à jour avec succès ! ✅', type: 'success' });
+      setSuccess('Profil mis à jour avec succès ! ✅');
       setErrors({});
       setFormData((prev) => ({
         ...prev,
@@ -187,7 +182,7 @@ const Profile = () => {
       }));
     } catch (err) {
       console.error('Profile update error:', err);
-      setNotification({ message: err.response?.data?.message || 'La mise à jour du profil a échoué. ❌', type: 'error' });
+      setError(err.response?.data?.message || 'La mise à jour du profil a échoué. ❌');
     }
   };
 
@@ -198,11 +193,6 @@ const Profile = () => {
       <ClientNavbar />
       <NotificationButton />
       <NotificationPanel />
-      <Notification
-        message={notification.message}
-        type={notification.type}
-        onClose={() => setNotification({ message: '', type: '' })}
-      />
       <div className="orders-container">
         <div className="orders-header">
           <div className="profile-header-icon">{user?.name?.charAt(0)}</div>
@@ -212,19 +202,21 @@ const Profile = () => {
         <div className="main-content">
           <div className="profile-card">
 
+            {success && (
+              <div className="success-message">
+                {success}
+              </div>
+            )}
+
+            {error && (
+              <div className="error-message">
+                {error}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="profile-form">
 
               <div className="form-row">
-                <div className="form-group">
-                  <label>Nom</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    className="form-control"
-                    disabled
-                  />
-                </div>
                 <div className="form-group">
                   <label>Email</label>
                   <input type="email" name="email" value={formData.email} className="form-control" disabled />
@@ -275,6 +267,7 @@ const Profile = () => {
                     value={formData.clinicType}
                     onChange={handleChange}
                     className="form-control"
+                    disabled
                   >
                     <option value="clinic">Clinique</option>
                     <option value="laboratory">Laboratoire</option>
@@ -286,18 +279,22 @@ const Profile = () => {
               <hr className="profile-divider" />
 
               <div>
-                <h3 className="password-section-title">Changer le mot de passe</h3>
+                <h3 className="password-section-title">Sécurité du compte</h3>
+                <p className="password-section-description">
+                  Pour des raisons de sécurité, vous devez confirmer votre mot de passe actuel avant de modifier vos informations.
+                </p>
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Ancien mot de passe</label> {/* 👈 nouveau champ */}
+                    <label>Mot de passe actuel <span className="required">*</span></label>
                     <input
                       type="password"
                       name="currentPassword"
                       value={formData.currentPassword}
                       onChange={handleChange}
                       className={`form-control ${errors.currentPassword ? 'is-invalid' : ''}`}
-                      placeholder="Ancien mot de passe"
+                      placeholder="Saisissez votre mot de passe actuel"
+                      required
                     />
                     <div className="error-text">{errors.currentPassword}</div>
                   </div>

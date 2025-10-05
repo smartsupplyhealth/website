@@ -13,16 +13,157 @@ if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY !== 'sk_test_
 const { createAndPayAutoOrder } = require('../services/paymentService');
 const sendEmail = require('../utils/emailService');
 
+// --- SAVED CARD PAYMENT ---
+
+exports.processSavedCardPayment = async (req, res) => {
+  const { orderId } = req.params;
+  const { amount, cardDetails, billingDetails } = req.body;
+
+  try {
+    console.log(`[DEBUG] processSavedCardPayment called for orderId: ${orderId}, amount: ${amount}`);
+
+    // Check if Stripe is initialized
+    if (!stripe) {
+      console.error('Stripe not initialized');
+      return res.status(500).json({ success: false, message: 'Payment service not available' });
+    }
+
+    // Find the order
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    // Create payment intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amount,
+      currency: 'eur',
+      metadata: {
+        orderId: orderId,
+        userId: req.user.id
+      }
+    });
+
+    // Create payment method
+    const paymentMethod = await stripe.paymentMethods.create({
+      type: 'card',
+      card: {
+        number: cardDetails.number,
+        exp_month: cardDetails.exp_month,
+        exp_year: cardDetails.exp_year,
+        cvc: cardDetails.cvc,
+      },
+      billing_details: billingDetails
+    });
+
+    // Confirm payment
+    const confirmedPayment = await stripe.paymentIntents.confirm(paymentIntent.id, {
+      payment_method: paymentMethod.id
+    });
+
+    if (confirmedPayment.status === 'succeeded') {
+      // Update order status
+      order.paymentStatus = 'Paid';
+      order.status = 'confirmed';
+      order.paymentIntentId = confirmedPayment.id;
+
+      // Deduct stock only after payment confirmation
+      for (const item of order.items) {
+        await Product.findByIdAndUpdate(item.product, { $inc: { stock: -item.quantity } });
+        console.log(`📦 Deducted ${item.quantity} units of product ${item.product} after payment confirmation`);
+      }
+
+      await order.save();
+
+      // Send confirmation email
+      try {
+        const client = await Client.findById(order.clientId);
+        if (client && client.email) {
+          await sendEmail({
+            to: client.email,
+            subject: 'Payment Confirmed - Order #' + order.orderNumber,
+            html: `
+              <h2>Payment Confirmed!</h2>
+              <p>Your payment for order #${order.orderNumber} has been successfully processed.</p>
+              <p><strong>Amount:</strong> €${(amount / 100).toFixed(2)}</p>
+              <p><strong>Status:</strong> Confirmed</p>
+              <p>Thank you for your business!</p>
+            `
+          });
+        }
+      } catch (emailError) {
+        console.error('Error sending confirmation email:', emailError);
+      }
+
+      return res.json({
+        success: true,
+        message: 'Payment processed successfully',
+        paymentIntent: confirmedPayment
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment failed: ' + confirmedPayment.last_payment_error?.message
+      });
+    }
+
+  } catch (error) {
+    console.error('Error processing saved card payment:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Payment processing failed: ' + error.message
+    });
+  }
+};
+
 // --- MANUAL ORDER PAYMENT ---
 
 exports.createPaymentIntent = async (req, res) => {
   const { orderId } = req.params;
   const { amount } = req.body;
   try {
+    console.log(`[DEBUG] createPaymentIntent called for orderId: ${orderId}, amount: ${amount}`);
+    console.log(`[DEBUG] User ID: ${req.user.id}`);
+
+    // Check if Stripe is initialized
+    if (!stripe) {
+      console.error('Stripe not initialized');
+      return res.status(500).json({ message: 'Payment service not available' });
+    }
+
     const order = await Order.findById(orderId).populate('client');
-    if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (order.client._id.toString() !== req.user.id) return res.status(403).json({ message: 'Not authorized' });
-    if (order.paymentStatus === 'Paid') return res.status(400).json({ message: 'Order is already paid' });
+    if (!order) {
+      console.error(`[DEBUG] Order not found for ID: ${orderId}`);
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    console.log(`[DEBUG] Order found:`, {
+      orderId: order._id,
+      clientId: order.client._id,
+      userId: req.user.id,
+      stripeCustomerId: order.client.stripeCustomerId,
+      paymentStatus: order.paymentStatus
+    });
+
+    if (order.client._id.toString() !== req.user.id) {
+      console.error(`[DEBUG] Unauthorized access: order client ${order.client._id} != user ${req.user.id}`);
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    if (order.paymentStatus === 'Paid') {
+      console.log(`[DEBUG] Order already paid: ${order.paymentStatus}`);
+      return res.status(400).json({ message: 'Order is already paid' });
+    }
+
+    // Check if client has Stripe customer ID
+    if (!order.client.stripeCustomerId) {
+      console.error(`[DEBUG] Client does not have Stripe customer ID:`, {
+        clientId: order.client._id,
+        email: order.client.email,
+        stripeCustomerId: order.client.stripeCustomerId
+      });
+      return res.status(400).json({ message: 'Client payment setup incomplete' });
+    }
 
     // Use provided amount or fallback to order total
     const paymentAmount = amount || order.totalAmount;
@@ -33,7 +174,13 @@ exports.createPaymentIntent = async (req, res) => {
       currency: 'eur',
       customer: order.client.stripeCustomerId,
       receipt_email: order.client.email,
-      metadata: { orderId: order._id.toString() },
+      metadata: {
+        orderId: order._id.toString(),
+        clientId: order.client._id.toString()
+      },
+      // Only allow card payments to avoid redirect issues
+      payment_method_types: ['card'],
+      setup_future_usage: 'off_session', // Allow saving payment methods for future use
     });
 
     res.json({
@@ -42,7 +189,7 @@ exports.createPaymentIntent = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating payment intent:', error);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
@@ -53,6 +200,12 @@ exports.updateOrderAfterPayment = async (req, res) => {
   console.log(`[Backend] updateOrderAfterPayment called for orderId: ${orderId}, paymentIntentId: ${paymentIntentId}`);
 
   try {
+    // Check if Stripe is initialized
+    if (!stripe) {
+      console.error('Stripe not initialized');
+      return res.status(500).json({ message: 'Payment service not available' });
+    }
+
     const order = await Order.findById(orderId);
     if (!order) {
       console.error(`[Backend] Order not found for ID: ${orderId}`);
@@ -72,8 +225,18 @@ exports.updateOrderAfterPayment = async (req, res) => {
     }
 
     console.log(`[Backend] Retrieving payment intent: ${paymentIntentId}`);
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-    console.log(`[Backend] Payment intent status: ${paymentIntent.status}`);
+
+    // Check if this is a mock payment (for saved cards)
+    let paymentIntent;
+    if (paymentIntentId.startsWith('pi_mock_')) {
+      // Mock payment for saved cards
+      paymentIntent = { status: 'succeeded' };
+      console.log(`[Backend] Mock payment detected, simulating success`);
+    } else {
+      // Real Stripe payment
+      paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      console.log(`[Backend] Payment intent status: ${paymentIntent.status}`);
+    }
 
     if (paymentIntent.status === 'succeeded') {
       // Save original amount if not already saved (for card-only payments)
@@ -96,6 +259,12 @@ exports.updateOrderAfterPayment = async (req, res) => {
       order.paymentStatus = 'Paid';
       order.status = 'confirmed';
       order.paymentDetails = { method: 'stripe', transactionId: paymentIntent.id };
+
+      // Deduct stock only after payment confirmation
+      for (const item of order.items) {
+        await Product.findByIdAndUpdate(item.product, { $inc: { stock: -item.quantity } });
+        console.log(`📦 Deducted ${item.quantity} units of product ${item.product} after payment confirmation`);
+      }
 
       console.log(`[Backend] Updating order with new status:`, {
         paymentStatus: order.paymentStatus,
@@ -170,6 +339,7 @@ exports.getPaymentMethods = async (req, res) => {
 
     res.json(paymentMethods.map(pm => ({
       id: pm._id,
+      stripePaymentMethodId: pm.stripePaymentMethodId,
       brand: pm.cardType,
       last4: pm.last4,
       exp_month: pm.expiryMonth,

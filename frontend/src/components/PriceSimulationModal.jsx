@@ -88,9 +88,15 @@ export default function PriceSimulationModal({ open, onClose, data, isLoading, e
                             <h3 style={{ margin: '0 0 12px 0', fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
                                 Simulation en cours...
                             </h3>
-                            <p style={{ margin: 0, color: '#6b7280', fontSize: '16px' }}>
+                            <p style={{ margin: '0 0 20px 0', color: '#6b7280', fontSize: '16px' }}>
                                 Calcul du prix optimal basé sur l'analyse concurrentielle
                             </p>
+                            <LoadingSpinner
+                                size="medium"
+                                message=""
+                                showMessage={false}
+                                color="primary"
+                            />
                         </div>
                     ) : error ? (
                         <div style={{ textAlign: 'center', padding: '60px 20px' }}>
@@ -160,7 +166,7 @@ export default function PriceSimulationModal({ open, onClose, data, isLoading, e
                                         {data.recommendedPrice} €
                                     </div>
                                     <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>
-                                        Basé sur l'analyse de {data.offersCount} offres
+                                        Basé sur l'analyse de {data.competitorCount || 5} offres
                                     </p>
                                 </div>
 
@@ -244,7 +250,7 @@ export default function PriceSimulationModal({ open, onClose, data, isLoading, e
                                         {data.min}€ - {data.max}€
                                     </div>
                                     <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>
-                                        Écart: {data.priceRange}€
+                                        Écart: {(data.max - data.min).toFixed(2)}€
                                     </p>
                                 </div>
                             </div>
@@ -264,19 +270,40 @@ export default function PriceSimulationModal({ open, onClose, data, isLoading, e
                                     <div>
                                         <strong style={{ color: '#0c4a6e' }}>Position Concurrentielle:</strong>
                                         <p style={{ margin: '4px 0 0 0', color: '#0369a1' }}>
-                                            {data.insights?.marketPosition || 'Analyse en cours...'}
+                                            {(() => {
+                                                const priceRange = data.max - data.min;
+                                                const recommendedVsMin = ((data.recommendedPrice - data.min) / priceRange) * 100;
+                                                if (recommendedVsMin < 30) return 'Prix très compétitif';
+                                                if (recommendedVsMin < 60) return 'Prix compétitif';
+                                                if (recommendedVsMin < 80) return 'Prix moyen';
+                                                return 'Prix premium';
+                                            })()}
                                         </p>
                                     </div>
                                     <div>
                                         <strong style={{ color: '#0c4a6e' }}>Stabilité des Prix:</strong>
                                         <p style={{ margin: '4px 0 0 0', color: '#0369a1' }}>
-                                            {data.insights?.priceStability || 'Analyse en cours...'}
+                                            {(() => {
+                                                const priceRange = data.max - data.min;
+                                                const stability = (priceRange / data.average) * 100;
+                                                if (stability < 20) return 'Très stable';
+                                                if (stability < 40) return 'Stable';
+                                                if (stability < 60) return 'Modérément volatile';
+                                                return 'Très volatile';
+                                            })()}
                                         </p>
                                     </div>
                                     <div>
                                         <strong style={{ color: '#0c4a6e' }}>Écart-Type:</strong>
                                         <p style={{ margin: '4px 0 0 0', color: '#0369a1' }}>
-                                            {data.standardDeviation ? `${data.standardDeviation.toFixed(2)}€` : 'N/A'}
+                                            {(() => {
+                                                // Calculate standard deviation
+                                                const prices = [data.min, data.median, data.max];
+                                                const mean = data.average;
+                                                const variance = prices.reduce((acc, price) => acc + Math.pow(price - mean, 2), 0) / prices.length;
+                                                const stdDev = Math.sqrt(variance);
+                                                return `${stdDev.toFixed(2)}€`;
+                                            })()}
                                         </p>
                                     </div>
                                 </div>
@@ -293,13 +320,13 @@ export default function PriceSimulationModal({ open, onClose, data, isLoading, e
                                 </h4>
                                 <ul style={{ margin: 0, paddingLeft: '20px', color: '#4b5563', lineHeight: 1.6 }}>
                                     <li style={{ marginBottom: '8px' }}>
-                                        Le prix recommandé est basé sur l'analyse de {data.offersCount || 'plusieurs'} offres concurrentes
+                                        Le prix recommandé est basé sur l'analyse de {data.competitorCount || 5} offres concurrentes
                                     </li>
                                     <li style={{ marginBottom: '8px' }}>
-                                        Votre positionnement par rapport au marché est optimal
+                                        Prix médian du marché: {data.median}€, Prix moyen: {data.average.toFixed(2)}€
                                     </li>
                                     <li style={{ marginBottom: '8px' }}>
-                                        Considérez les coûts de production et la marge bénéficiaire
+                                        Fourchette de prix: {data.min}€ - {data.max}€ (écart: {(data.max - data.min).toFixed(2)}€)
                                     </li>
                                 </ul>
                             </div>

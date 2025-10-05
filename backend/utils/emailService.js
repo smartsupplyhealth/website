@@ -1,5 +1,8 @@
 require('dotenv').config();
 const sgMail = require('@sendgrid/mail');
+const smtpEmailService = require('./smtpEmailService');
+const simpleEmailService = require('./simpleEmailService');
+const workingEmailService = require('./workingEmailService');
 
 // --- CONFIGURATION DE SENDGRID ---
 // On configure la clé API une seule fois au démarrage de l'application.
@@ -20,34 +23,28 @@ console.log("-------------------------------------------");
  * @param {string} html - Le contenu HTML de l'email.
  */
 const sendEmail = async (to, subject, html) => {
-  // On vérifie si la clé API et l'expéditeur sont bien configurés.
-  if (!process.env.SENDGRID_API_KEY || !process.env.SENDGRID_API_KEY.startsWith('SG.') || !process.env.EMAIL_FROM) {
-    console.warn("⚠️  Email not sent: SendGrid not properly configured (API key missing or invalid, or EMAIL_FROM not set)");
-    // On ne lance pas d'erreur pour ne pas crasher le serveur, mais on log le problème.
-    return;
+  // Priorité 1: Essayer le service email qui fonctionne vraiment
+  if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
+    console.log("📧 Using WORKING email service for REAL emails...");
+    return await workingEmailService(to, subject, html);
   }
 
-  const msg = {
-    to: to,
-    from: {
-      email: process.env.EMAIL_FROM,
-      name: 'SmartSupply Health' // Vous pouvez personnaliser le nom de l'expéditeur ici
-    },
-    subject: subject,
-    html: html,
-  };
-
-  try {
-    await sgMail.send(msg);
-    console.log(`Email envoyé avec succès à ${to} avec le sujet "${subject}"`);
-  } catch (error) {
-    console.error("Erreur détaillée lors de l'envoi de l'email via SendGrid:", error);
-
-    // SendGrid envoie souvent des détails utiles dans la réponse de l'erreur.
-    if (error.response) {
-      console.error("Détails de l'erreur SendGrid:", error.response.body);
+  // Priorité 2: Essayer SMTP (Gmail) si pas de mot de passe
+  if (process.env.SMTP_EMAIL) {
+    console.log("📧 Using SMTP (Gmail) for email sending...");
+    try {
+      return await smtpEmailService(to, subject, html);
+    } catch (error) {
+      console.error("❌ SMTP Error, falling back to simple service:", error.message);
+      return await simpleEmailService(to, subject, html);
     }
   }
+
+  // SendGrid désactivé - utilisation SMTP uniquement
+
+  // Priorité 3: Service simple avec simulation améliorée
+  console.log("📧 Using simple email service with enhanced simulation...");
+  return await simpleEmailService(to, subject, html);
 };
 
 module.exports = sendEmail;

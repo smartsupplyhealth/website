@@ -6,7 +6,8 @@ const orderController = require('../controllers/orderController');
 // Client routes
 router.post('/', auth, orderController.createOrder);
 router.get('/', auth, orderController.getOrders); // This is likely for suppliers/admins
-router.get('/my-orders', auth, orderController.getMyOrders); // <-- ADD THIS
+router.get('/my-orders', auth, orderController.getMyOrders);
+router.get('/budget-analytics', auth, orderController.getBudgetAnalytics);
 router.get('/my-products', auth, orderController.getMyOrderedProducts);
 router.get('/:id', auth, orderController.getOrderById);
 router.delete('/:id', auth, orderController.cancelOrder);

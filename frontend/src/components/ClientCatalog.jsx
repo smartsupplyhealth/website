@@ -67,13 +67,14 @@ export default function ClientCatalog({ reload }) {
 
   const [categories, setCategories] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [quantities, setQuantities] = useState({});
   const [showAIAssistant, setShowAIAssistant] = useState(null);
+  const [showQuantityModal, setShowQuantityModal] = useState(false);
+  const [productToAdd, setProductToAdd] = useState(null);
+  const [notification, setNotification] = useState({ message: '', type: '', showOptions: false });
   // Store all products for similar product lookup
 
-  // recommandations
-  const [recommendations, setRecommendations] = useState([]);
   const [clientId, setClientId] = useState(null);
-  const [recLoading, setRecLoading] = useState(false);
 
   const navigate = useNavigate();
   const { addToCart } = useContext(CartContext);
@@ -142,23 +143,6 @@ export default function ClientCatalog({ reload }) {
     })();
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      if (!clientId) return;
-      try {
-        setRecLoading(true);
-        const token = localStorage.getItem("token");
-        const res = await axios.get(`${API_BASE}/api/recommendations/${clientId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setRecommendations(Array.isArray(res.data) ? res.data : []);
-      } catch {
-        setRecommendations([]);
-      } finally {
-        setRecLoading(false);
-      }
-    })();
-  }, [clientId]);
 
   /* ==================== FILTRES / TRI ==================== */
   const filteredSorted = useMemo(() => {
@@ -205,10 +189,53 @@ export default function ClientCatalog({ reload }) {
   /* ==================== HELPERS ==================== */
   const handleOrder = (p) => { addToCart(p); navigate("/client-dashboard/new-order"); };
 
+  const handleAddToCartClick = (product) => {
+    if (product.stock <= 0) return;
+    setProductToAdd(product);
+    setShowQuantityModal(true);
+  };
 
+  const handleConfirmQuantity = () => {
+    if (!productToAdd) return;
+    const quantity = quantities[productToAdd._id] || 1;
 
+    // Ajouter la quantité spécifiée au panier
+    for (let i = 0; i < quantity; i++) {
+      addToCart(productToAdd);
+    }
 
+    // Afficher une notification avec options
+    setNotification({
+      message: `${quantity} produit(s) ajouté(s) au panier`,
+      type: "success",
+      showOptions: true,
+      productName: productToAdd.name
+    });
 
+    // Fermer la modal et réinitialiser
+    setShowQuantityModal(false);
+    setProductToAdd(null);
+    setQuantities(prev => ({
+      ...prev,
+      [productToAdd._id]: 1
+    }));
+  };
+
+  const handleQuantityChange = (productId, newQuantity) => {
+    setQuantities(prev => ({
+      ...prev,
+      [productId]: Math.max(1, Math.min(newQuantity, productToAdd?.stock || 999))
+    }));
+  };
+
+  const handleContinueShopping = () => {
+    setNotification({ message: '', type: '', showOptions: false });
+  };
+
+  const handleFinalizeOrder = () => {
+    setNotification({ message: '', type: '', showOptions: false });
+    navigate("/client-dashboard/new-order");
+  };
 
   const onEnter = (e) => { if (e.key === "Enter") setPage(1); };
   const StockBadge = ({ value }) => (
@@ -266,109 +293,6 @@ export default function ClientCatalog({ reload }) {
           </div>
         </div>
 
-        {/* Recommandations - Design amélioré */}
-        {(recLoading || recommendations.length > 0) && (
-          <section className="recommendations-section">
-            <div className="recommendations-header">
-              <div className="recommendations-title-container">
-                <div className="recommendations-icon">✨</div>
-                <h2 className="recommendations-title">Nos recommandations pour vous</h2>
-              </div>
-              <p className="recommendations-subtitle">
-                Produits choisis selon votre activité et vos préférences
-              </p>
-            </div>
-
-            <div className="recommendations-container">
-              <div className="recommendations-grid">
-                {recLoading
-                  ? [...Array(4)].map((_, i) => (
-                    <div className="recommendation-card skeleton-card" key={i}>
-                      <div className="recommendation-image-container skeleton" />
-                      <div className="recommendation-content">
-                        <div className="recommendation-category skeleton skeleton-text" />
-                        <div className="recommendation-title skeleton skeleton-text" />
-                        <div className="recommendation-description skeleton skeleton-text" />
-                        <div className="recommendation-info">
-                          <div className="recommendation-price skeleton skeleton-text" />
-                          <div className="recommendation-stock skeleton skeleton-text" />
-                        </div>
-                      </div>
-                      <div className="recommendation-actions">
-                        <div className="recommendation-btn skeleton skeleton-btn" />
-                        <div className="recommendation-btn skeleton skeleton-btn" />
-                      </div>
-                    </div>
-                  ))
-                  : recommendations.map((p) => {
-                    const out = (p.stock ?? 0) <= 0;
-                    return (
-                      <article className="recommendation-card" key={p._id}>
-                        <div className="recommendation-image-container">
-                          {p.images?.length ? (
-                            <img
-                              className="recommendation-image"
-                              src={`${API_BASE}${p.images[0]}`}
-                              alt={p.name}
-                            />
-                          ) : (
-                            <div className="recommendation-image-placeholder">
-                              <span>📦</span>
-                            </div>
-                          )}
-                          <div className="recommendation-badge">
-                            <span>⭐ Recommandé</span>
-                          </div>
-                        </div>
-
-                        <div className="recommendation-content">
-                          <div className="recommendation-category">
-                            {p.category || "Produit"}
-                          </div>
-                          <h3 className="recommendation-title">{p.name}</h3>
-                          <p className="recommendation-description">
-                            {p.description?.length > 100 ? p.description.slice(0, 100) + "…" : p.description || "Description non disponible"}
-                          </p>
-
-                          <div className="recommendation-info">
-                            <div className="recommendation-price">
-                              <span className="price-label">Prix</span>
-                              <span className="price-value">{money.format(Number(p.price || 0))}</span>
-                            </div>
-                            <div className="recommendation-stock">
-                              <span className="stock-label">Stock</span>
-                              <span className={`stock-value ${(p.stock ?? 0) <= 0 ? "zero" : ""}`}>
-                                {p.stock ?? 0}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="recommendation-actions">
-                          <button
-                            className="recommendation-btn details-btn"
-                            onClick={() => setSelectedProduct(p)}
-                          >
-                            <FaEye />
-                            Détails
-                          </button>
-                          <button
-                            className={`recommendation-btn cart-btn ${out ? "disabled" : ""}`}
-                            disabled={out}
-                            onClick={() => handleOrder(p)}
-                          >
-                            <FaShoppingCart />
-                            {out ? "Rupture" : "Au panier"}
-                          </button>
-                        </div>
-                      </article>
-                    );
-                  })
-                }
-              </div>
-            </div>
-          </section>
-        )}
 
         {/* Grille produits (chaque carte : Détails + Ajouter au panier) */}
         <section className="products-grid">
@@ -419,9 +343,17 @@ export default function ClientCatalog({ reload }) {
                       Détails
                     </button>
                     <button
-                      style={{ ...BTN.base, ...BTN.blue, ...(out ? BTN.disabled : {}) }}
+                      style={{
+                        ...BTN.base,
+                        ...(out ? {
+                          ...BTN.disabled,
+                          background: "linear-gradient(135deg, #dc2626, #b91c1c)",
+                          color: "white",
+                          boxShadow: "0 10px 20px rgba(220, 38, 38, 0.3)"
+                        } : BTN.blue)
+                      }}
                       disabled={out}
-                      onClick={() => handleOrder(p)}
+                      onClick={() => handleAddToCartClick(p)}
                     >
                       <FaShoppingCart />
                       {out ? "En rupture" : "Ajouter au panier"}
@@ -555,9 +487,17 @@ export default function ClientCatalog({ reload }) {
               </div>
               <div className="modal-footer">
                 <button
-                  style={{ ...BTN.base, ...BTN.blue, ...(selectedProduct.stock <= 0 ? BTN.disabled : {}) }}
+                  style={{
+                    ...BTN.base,
+                    ...(selectedProduct.stock <= 0 ? {
+                      ...BTN.disabled,
+                      background: "linear-gradient(135deg, #dc2626, #b91c1c)",
+                      color: "white",
+                      boxShadow: "0 10px 20px rgba(220, 38, 38, 0.3)"
+                    } : BTN.blue)
+                  }}
                   disabled={selectedProduct.stock <= 0}
-                  onClick={() => handleOrder(selectedProduct)}
+                  onClick={() => handleAddToCartClick(selectedProduct)}
                 >
                   {selectedProduct.stock <= 0 ? "En rupture" : "Ajouter au panier"}
                 </button>
@@ -590,6 +530,116 @@ export default function ClientCatalog({ reload }) {
             navigate('/client-dashboard/new-order');
           }}
         />
+
+        {/* Modal de sélection de quantité */}
+        {showQuantityModal && productToAdd && (
+          <div className="quantity-modal-overlay" onClick={() => setShowQuantityModal(false)}>
+            <div className="quantity-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="quantity-modal-header">
+                <h3>Choisir la quantité</h3>
+                <button
+                  className="quantity-modal-close"
+                  onClick={() => setShowQuantityModal(false)}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="quantity-modal-body">
+                <div className="product-preview">
+                  <img
+                    src={productToAdd.images?.length ? `${API_BASE}${productToAdd.images[0]}` : '/placeholder-product.png'}
+                    alt={productToAdd.name}
+                    className="product-preview-image"
+                  />
+                  <div className="product-preview-info">
+                    <h4>{productToAdd.name}</h4>
+                    <p className="product-preview-price">{money.format(Number(productToAdd.price || 0))}</p>
+                    <p className="product-preview-stock">Stock disponible : {productToAdd.stock}</p>
+                  </div>
+                </div>
+
+                <div className="quantity-selection">
+                  <label>Quantité :</label>
+                  <div className="quantity-controls-large">
+                    <button
+                      className="qty-btn-large minus"
+                      onClick={() => handleQuantityChange(productToAdd._id, (quantities[productToAdd._id] || 1) - 1)}
+                      disabled={(quantities[productToAdd._id] || 1) <= 1}
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      max={productToAdd.stock}
+                      value={quantities[productToAdd._id] || 1}
+                      onChange={(e) => handleQuantityChange(productToAdd._id, parseInt(e.target.value) || 1)}
+                      className="quantity-input-large"
+                    />
+                    <button
+                      className="qty-btn-large plus"
+                      onClick={() => handleQuantityChange(productToAdd._id, (quantities[productToAdd._id] || 1) + 1)}
+                      disabled={(quantities[productToAdd._id] || 1) >= productToAdd.stock}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="quantity-modal-footer">
+                <button
+                  className="quantity-cancel-btn"
+                  onClick={() => setShowQuantityModal(false)}
+                >
+                  Annuler
+                </button>
+                <button
+                  className="quantity-confirm-btn"
+                  onClick={handleConfirmQuantity}
+                >
+                  <FaShoppingCart />
+                  Ajouter {quantities[productToAdd._id] || 1} au panier
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Notification personnalisée avec options */}
+        {notification.message && (
+          <div className="custom-notification-overlay">
+            <div className="custom-notification">
+              <div className="notification-header">
+                <div className="notification-icon">✅</div>
+                <h3>Produit ajouté !</h3>
+              </div>
+              <div className="notification-body">
+                <p>{notification.message}</p>
+                {notification.showOptions && (
+                  <div className="notification-actions">
+                    <p>Que souhaitez-vous faire maintenant ?</p>
+                    <div className="action-buttons">
+                      <button
+                        className="continue-btn"
+                        onClick={handleContinueShopping}
+                      >
+                        🛒 Continuer les achats
+                      </button>
+                      <button
+                        className="finalize-btn"
+                        onClick={handleFinalizeOrder}
+                      >
+                        ✅ Finaliser la commande
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

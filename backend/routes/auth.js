@@ -18,6 +18,7 @@ const {
 const Client = require('../models/Client');
 const Supplier = require('../models/Supplier');
 const authController = require('../controllers/authController');
+const { notifyWelcome } = require('../services/notificationService');
 
 const router = express.Router();
 
@@ -71,6 +72,11 @@ router.post('/register', validateRegister, checkValidation, async (req, res) => 
     }
 
     await user.save();
+
+    // Create welcome notification for new users
+    if (role === 'client') {
+      await notifyWelcome(user._id, user.name);
+    }
 
     const token = generateToken(user._id, role);
 
