@@ -3,9 +3,7 @@ version: '3.8'
 services:
   # Base de données MongoDB
   mongodb:
-    build:
-      context: .
-      dockerfile: Dockerfile.mongodb
+    image: mongo:6.0
     container_name: smartsupply-mongodb
     restart: unless-stopped
     environment:
@@ -16,8 +14,7 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
-      - mongodb_logs:/data/logs
-      - mongodb_backups:/data/backups
+      - ./backend/scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     networks:
       - smartsupply-network
 
@@ -25,7 +22,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile.backend
+      dockerfile: Dockerfile
     container_name: smartsupply-backend
     restart: unless-stopped
     environment:
@@ -40,8 +37,7 @@ services:
     depends_on:
       - mongodb
     volumes:
-      - ./backend/uploads:/app/uploads
-      - backend_logs:/app/logs
+      - ./backend/uploads:/app/backend/uploads
     networks:
       - smartsupply-network
 
@@ -59,8 +55,6 @@ services:
       - "3000:3000"
     depends_on:
       - backend
-    volumes:
-      - frontend_logs:/var/log/nginx
     networks:
       - smartsupply-network
 
@@ -83,10 +77,7 @@ services:
 
 volumes:
   mongodb_data:
-  mongodb_logs:
-  mongodb_backups:
-  backend_logs:
-  frontend_logs:
+
 
 networks:
   smartsupply-network:

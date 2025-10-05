@@ -1,4 +1,4 @@
-// Health check pour le backend SmartSupply Health
+// Health check pour le backend
 const http = require('http');
 
 const options = {
@@ -11,21 +11,17 @@ const options = {
 
 const req = http.request(options, (res) => {
   if (res.statusCode === 200) {
-    console.log('✅ Backend health check passed');
     process.exit(0);
   } else {
-    console.log(`❌ Backend health check failed with status: ${res.statusCode}`);
     process.exit(1);
   }
 });
 
-req.on('error', (err) => {
-  console.log(`❌ Backend health check failed: ${err.message}`);
+req.on('error', () => {
   process.exit(1);
 });
 
 req.on('timeout', () => {
-  console.log('❌ Backend health check timeout');
   req.destroy();
   process.exit(1);
 });
