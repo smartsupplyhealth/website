@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # Base de données MongoDB - Développement
+  mongodb:
+    build:
+      context: .
+      dockerfile: Dockerfile.mongodb
+    container_name: smartsupply-mongodb-dev
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: smartsupply
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_dev_data:/data/db
+      - mongodb_dev_logs:/data/logs
+    networks:
+      - smartsupply-dev-network
+
+  # Backend API - Développement avec hot reload
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: smartsupply-backend-dev
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/smartsupply?authSource=admin
+      JWT_SECRET: dev-jwt-secret
+      STRIPE_SECRET_KEY: sk_test_your-stripe-secret-key
+      SENDGRID_API_KEY: your-sendgrid-api-key
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - backend_dev_logs:/app/logs
+    networks:
+      - smartsupply-dev-network
+    command: npm run dev
+
+  # Frontend React - Développement avec hot reload
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: smartsupply-frontend-dev
+    restart: unless-stopped
+    environment:
+      REACT_APP_API_URL: http://localhost:5000
+      NODE_ENV: development
+      CHOKIDAR_USEPOLLING: true
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+      - frontend_dev_logs:/var/log/nginx
+    networks:
+      - smartsupply-dev-network
+
+  # Redis pour le cache - Développement
+  redis:
+    image: redis:7-alpine
+    container_name: smartsupply-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - smartsupply-dev-network
+
+volumes:
+  mongodb_dev_data:
+  mongodb_dev_logs:
+  backend_dev_logs:
+  frontend_dev_logs:
+  redis_dev_data:
+
+networks:
+  smartsupply-dev-network:
+    driver: bridge
