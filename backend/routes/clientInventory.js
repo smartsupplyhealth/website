@@ -11,6 +11,39 @@ router.use(auth, authorize('client'));
 // GET /api/client-inventory - Récupère l'inventaire complet du client
 router.get('/', getClientInventory);
 
+// GET /api/client-inventory/product/:productId - Récupère l'inventaire d'un produit spécifique
+router.get('/product/:productId', async (req, res) => {
+  try {
+    const clientId = req.user.id;
+    const { productId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ message: 'Product ID invalide' });
+    }
+
+    const inventory = await ClientInventory.findOne({
+      client: clientId,
+      product: productId
+    }).populate('product', 'name reference category images price');
+
+    if (!inventory) {
+      // Retourner des valeurs par défaut si pas d'inventaire
+      return res.json({
+        currentStock: 0,
+        dailyUsage: 0,
+        reorderPoint: 0,
+        reorderQty: 0,
+        autoOrder: { enabled: false }
+      });
+    }
+
+    res.json(inventory);
+  } catch (error) {
+    console.error('Error fetching product inventory:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // PUT /api/client-inventory/:inventoryId - Met à jour les paramètres d'un article de l'inventaire
 router.put('/:inventoryId', updateInventoryItem);
 

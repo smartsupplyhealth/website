@@ -54,18 +54,24 @@ router.post('/register', validateRegister, checkValidation, async (req, res) => 
 
     let user;
     if (role === 'client') {
-      // Create a Stripe customer for the new client
-      const customer = await stripe.customers.create({
-        email: email,
-        name: name,
-        description: 'New client for SmartSupply-Health',
-      });
+      // Create a new client (Stripe customer creation is optional)
+      const clientData = { ...req.body };
+      
+      // Only create Stripe customer if Stripe is properly configured
+      if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY.startsWith('sk_')) {
+        try {
+          const customer = await stripe.customers.create({
+            email: email,
+            name: name,
+            description: 'New client for SmartSupply-Health',
+          });
+          clientData.stripeCustomerId = customer.id;
+        } catch (stripeError) {
+          console.warn('Stripe customer creation failed, continuing without Stripe:', stripeError.message);
+        }
+      }
 
-      // Create a new client with the Stripe Customer ID
-      user = new Client({
-        ...req.body,
-        stripeCustomerId: customer.id, // <-- SAVE THE STRIPE ID
-      });
+      user = new Client(clientData);
 
     } else if (role === 'supplier') {
       user = new Supplier(req.body);

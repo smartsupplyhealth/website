@@ -4,11 +4,23 @@ require('dotenv').config();
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    // Vérifier si déjà connecté
+    if (mongoose.connection.readyState === 1) {
+      console.log('MongoDB déjà connectée.');
+      return Promise.resolve();
+    }
+
+    // Fermer toute connexion existante avant de se reconnecter
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
+
+    await mongoose.connect(process.env.MONGODB_URI);
     console.log('MongoDB connectée avec succès.');
+    return Promise.resolve();
   } catch (err) {
     console.error('Erreur de connexion à MongoDB:', err.message);
-    process.exit(1);
+    return Promise.reject(err);
   }
 };
 

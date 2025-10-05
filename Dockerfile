@@ -1,5 +1,5 @@
 # Dockerfile pour SmartSupply Health
-FROM node:18-alpine
+FROM node:20-alpine
 
 # Définir le répertoire de travail
 WORKDIR /app
@@ -11,7 +11,7 @@ COPY frontend/package*.json ./frontend/
 
 # Installer les dépendances
 RUN npm install
-RUN cd backend && npm install
+RUN cd backend && npm install --legacy-peer-deps
 RUN cd frontend && npm install
 
 # Copier le code source

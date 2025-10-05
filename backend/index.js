@@ -31,12 +31,23 @@ const connectDB = require('./config/db');
 const { scheduleDailyConsumption } = require('./jobs/dailyConsumption');
 
 // Connexion à la base de données
-connectDB();
+connectDB().then(() => {
+  // Démarrer le service de libération de stock seulement après la connexion MongoDB
+  stockReleaseService.start();
+}).catch(err => {
+  console.error('Erreur lors de la connexion à MongoDB:', err);
+});
 
 const app = express();
 
 /* ------------------------ 1) CORE MIDDLEWARES ------------------------ */
-app.use(cors());
+// Configuration CORS pour permettre les requêtes depuis le frontend
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:80'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json()); // <- une seule fois et AVANT les routes
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -90,6 +101,4 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   // Démarrer les tâches planifiées une fois le serveur démarré
   scheduleDailyConsumption();
-  // Démarrer le service de libération automatique du stock
-  stockReleaseService.start();
 });

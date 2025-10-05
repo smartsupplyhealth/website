@@ -7,12 +7,8 @@ const Product = require('../models/Product');
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 
-// ------- INIT DB (si ce n’est pas déjà connecté autre part) -------
-if (MONGO_URI && mongoose.connection.readyState === 0) {
-  mongoose.connect(MONGO_URI, {
-    serverSelectionTimeoutMS: 8000,
-  }).catch(err => console.warn('Mongo connect warning (continuing):', err.message));
-}
+// ------- INIT DB (connexion gérée par config/db.js) -------
+// La connexion MongoDB est gérée par le fichier config/db.js
 
 // ------- INIT GEMINI -------
 let genAI = null;

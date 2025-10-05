@@ -165,7 +165,8 @@ const SupplierDashboard = () => {
         const generatePredictions = (period) => {
           const currentDate = new Date();
           const periods = [];
-          const baseAmount = statsData.success ? (statsData.data.monthlyRevenueDelivered || 10000) : 10000;
+          // Use real revenue data instead of fixed 10000
+          const baseAmount = statsData.success ? (statsData.data.monthlyRevenueDelivered || statsData.data.totalRevenue || 0) : 0;
 
           for (let i = -1; i <= 1; i++) { // Only 3 periods: previous, current, next
             let date, periodName, isPrevious, isCurrent, isFuture;
@@ -193,21 +194,38 @@ const SupplierDashboard = () => {
 
             let predicted, actual, confidence;
 
-            if (isPrevious) {
-              // Previous period: show actual data
-              actual = Math.round(baseAmount * (0.8 + Math.random() * 0.4));
-              predicted = Math.round(actual * (0.9 + Math.random() * 0.2));
-              confidence = 100;
-            } else if (isCurrent) {
-              // Current period: show both predicted and actual
-              predicted = Math.round(baseAmount * (1 + (Math.random() - 0.5) * 0.2));
-              actual = Math.round(predicted * (0.85 + Math.random() * 0.3));
-              confidence = Math.round(85 + Math.random() * 10);
+            // If no real data, show realistic small amounts instead of thousands
+            if (baseAmount === 0) {
+              if (isPrevious) {
+                actual = 0;
+                predicted = 0;
+                confidence = 0;
+              } else if (isCurrent) {
+                predicted = 0;
+                actual = 0;
+                confidence = 0;
+              } else {
+                predicted = 0;
+                actual = null;
+                confidence = 0;
+              }
             } else {
-              // Future period: only predictions
-              predicted = Math.round(baseAmount * (1 + (Math.random() - 0.5) * 0.3));
-              actual = null;
-              confidence = Math.round(75 + Math.random() * 10);
+              if (isPrevious) {
+                // Previous period: show actual data
+                actual = Math.round(baseAmount * (0.8 + Math.random() * 0.4));
+                predicted = Math.round(actual * (0.9 + Math.random() * 0.2));
+                confidence = 100;
+              } else if (isCurrent) {
+                // Current period: show both predicted and actual
+                predicted = Math.round(baseAmount * (1 + (Math.random() - 0.5) * 0.2));
+                actual = Math.round(predicted * (0.85 + Math.random() * 0.3));
+                confidence = Math.round(85 + Math.random() * 10);
+              } else {
+                // Future period: only predictions
+                predicted = Math.round(baseAmount * (1 + (Math.random() - 0.5) * 0.3));
+                actual = null;
+                confidence = Math.round(75 + Math.random() * 10);
+              }
             }
 
             periods.push({
