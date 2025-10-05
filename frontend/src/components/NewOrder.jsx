@@ -22,7 +22,6 @@ export default function NewOrder() {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [successOrderNumber, setSuccessOrderNumber] = useState('');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card');
   const navigate = useNavigate();
 
   const token = useMemo(() => localStorage.getItem('token'), []);
@@ -96,7 +95,7 @@ export default function NewOrder() {
         },
         notes: orderNotes,
         totalAmount,
-        paymentMethod: selectedPaymentMethod, // Include the selected payment method
+        paymentMethod: 'card', // Default payment method
       };
       const { data: newOrder } = await axiosAuth.post('/api/orders', orderData);
 
@@ -348,32 +347,6 @@ export default function NewOrder() {
               ></textarea>
             </div>
 
-            <div className="payment-method-section">
-              <h3>Mode de Paiement</h3>
-              <div className="payment-method-options">
-                <div
-                  className={`payment-option ${selectedPaymentMethod === 'card' ? 'selected' : ''}`}
-                  onClick={() => setSelectedPaymentMethod('card')}
-                >
-                  <div className="payment-icon">💳</div>
-                  <div className="payment-info">
-                    <h4>Carte bancaire</h4>
-                    <p>Visa, Mastercard, etc.</p>
-                  </div>
-                </div>
-
-                <div
-                  className={`payment-option ${selectedPaymentMethod === 'crypto' ? 'selected' : ''}`}
-                  onClick={() => setSelectedPaymentMethod('crypto')}
-                >
-                  <div className="payment-icon">₿</div>
-                  <div className="payment-info">
-                    <h4>Cryptomonnaie</h4>
-                    <p>Bitcoin, Ethereum, etc.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             <div className="checkout-summary">
               <div className="checkout-total">

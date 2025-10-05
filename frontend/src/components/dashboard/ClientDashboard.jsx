@@ -16,6 +16,13 @@ export default function ClientDashboard() {
     monthlySpending: [],
     categorySpending: []
   });
+  const [orderStats, setOrderStats] = useState({
+    pending: 0,
+    confirmed: 0,
+    processing: 0,
+    delivered: 0,
+    cancelled: 0
+  });
   const [loading, setLoading] = useState(true);
 
 
@@ -92,6 +99,42 @@ export default function ClientDashboard() {
           setBudgetData({ monthlySpending: [], categorySpending: [] });
         }
 
+        // Calculate order status statistics
+        const statusCounts = {
+          pending: 0,
+          confirmed: 0,
+          processing: 0,
+          delivered: 0,
+          cancelled: 0
+        };
+
+        // Count orders by status
+        ordersData.data.forEach(order => {
+          switch (order.status) {
+            case 'pending':
+              statusCounts.pending++;
+              break;
+            case 'confirmed':
+              statusCounts.confirmed++;
+              break;
+            case 'processing':
+              statusCounts.processing++;
+              break;
+            case 'delivered':
+              statusCounts.delivered++;
+              break;
+            case 'cancelled':
+              statusCounts.cancelled++;
+              break;
+            default:
+              // Handle other statuses if needed
+              break;
+          }
+        });
+
+        setOrderStats(statusCounts);
+        console.log('Order status statistics:', statusCounts);
+
 
 
 
@@ -144,6 +187,56 @@ export default function ClientDashboard() {
       </div>
 
       <div className="main-content">
+        {/* Order Status Statistics Section */}
+        <div className="order-stats-section">
+          <h3>📈 États des commandes</h3>
+          <div className="stats-grid">
+            <div className="chart-container">
+              <h4>Répartition par statut</h4>
+              <div className="chart-data">
+                {(() => {
+                  const statusData = [
+                    { label: 'En attente', value: orderStats.pending, color: '#f59e0b' },
+                    { label: 'Confirmées', value: orderStats.confirmed, color: '#3b82f6' },
+                    { label: 'En traitement', value: orderStats.processing, color: '#10b981' },
+                    { label: 'Livrées', value: orderStats.delivered, color: '#059669' },
+                    { label: 'Annulées', value: orderStats.cancelled, color: '#ef4444' }
+                  ];
+
+                  const maxValue = Math.max(...statusData.map(item => item.value));
+                  const totalOrders = statusData.reduce((sum, item) => sum + item.value, 0);
+
+                  return (
+                    <>
+                      {statusData.map((item, index) => (
+                        <div key={index} className="chart-bar">
+                          <div className="bar-label">{item.label}</div>
+                          <div className="bar-container">
+                            <div
+                              className="bar-fill"
+                              style={{
+                                width: `${maxValue > 0 ? Math.max((item.value / maxValue) * 100, 5) : 5}%`,
+                                backgroundColor: item.color
+                              }}
+                            ></div>
+                          </div>
+                          <div className="bar-value">{item.value}</div>
+                        </div>
+                      ))}
+
+                      {/* Total orders */}
+                      <div className="chart-total">
+                        <div className="total-label">Total des commandes :</div>
+                        <div className="total-value">{totalOrders}</div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Budget & Analytics Section */}
         <div className="budget-analytics">
           <h3>📊 Dépenses par catégorie</h3>

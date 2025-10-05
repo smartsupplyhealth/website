@@ -120,7 +120,7 @@ export default function ClientNavbar() {
                 {initials}
               </button>
               <div className="navbar-user-info">
-                <p className="navbar-user-name">{userName}</p>
+                <p className="navbar-user-name">{initials}</p>
                 <p className="navbar-user-company" title={company}>{company}</p>
               </div>
               <button onClick={logout} className="navbar-logout-btn" aria-label="Se déconnecter">
@@ -189,7 +189,7 @@ export default function ClientNavbar() {
                   {initials}
                 </button>
                 <div className="navbar-mobile-user-info">
-                  <p className="navbar-user-name">{userName}</p>
+                  <p className="navbar-user-name">{initials}</p>
                   <p className="navbar-user-company" title={company}>{company}</p>
                 </div>
               </div>

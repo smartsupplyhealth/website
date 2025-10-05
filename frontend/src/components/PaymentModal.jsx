@@ -142,18 +142,18 @@ const PaymentModal = ({ isOpen, onClose, order, onPaymentSuccess }) => {
       <div className="payment-modal">
         {/* 1. HEADER SECTION */}
         <div className="payment-modal-header">
-          <h2>Payment for Order #{order?.orderNumber || 'Unknown'}</h2>
+          <h2>Paiement pour la Commande #{order?.orderNumber || 'Inconnue'}</h2>
           <button className="close-btn" onClick={handleClose}>×</button>
         </div>
 
         {/* 2. COUPON SECTION */}
         <div className="coupon-section">
-          <h4>🎟️ DO YOU HAVE A COUPON?</h4>
-          <p>Enter a coupon code to get a discount on your order</p>
+          <h4>🎟️ AVEZ-VOUS UN COUPON ?</h4>
+          <p>Saisissez un code coupon pour obtenir une réduction sur votre commande</p>
           <div className="coupon-input-group">
             <input
               type="text"
-              placeholder="ENTER COUPON CODE"
+              placeholder="SAISIR LE CODE COUPON"
               className="coupon-input"
               value={couponCode}
               onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
@@ -163,13 +163,13 @@ const PaymentModal = ({ isOpen, onClose, order, onPaymentSuccess }) => {
               onClick={handleApplyCoupon}
               disabled={couponLoading || !couponCode.trim()}
             >
-              {couponLoading ? 'Applying...' : 'Apply Coupon'}
+              {couponLoading ? 'Application...' : 'Appliquer le Coupon'}
             </button>
             <button
               className="no-coupon-btn"
               onClick={handleRemoveCoupon}
             >
-              No Coupon
+              Pas de Coupon
             </button>
           </div>
           {couponError && (
