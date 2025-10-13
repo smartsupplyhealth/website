@@ -161,88 +161,29 @@ const SupplierDashboard = () => {
         // Fetch client type distribution
         await fetchClientDistribution(analyticsTimePeriod);
 
-        // Generate sales predictions based on selected time period (3 periods only)
-        const generatePredictions = (period) => {
-          const currentDate = new Date();
-          const periods = [];
-          // Use real revenue data instead of fixed 10000
-          const baseAmount = statsData.success ? (statsData.data.monthlyRevenueDelivered || statsData.data.totalRevenue || 0) : 0;
+        // Load REAL sales data from backend
+        try {
+          const salesResponse = await fetch(`${API_URL}/api/statistics/sales/forecast?period=${timePeriod}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
 
-          for (let i = -1; i <= 1; i++) { // Only 3 periods: previous, current, next
-            let date, periodName, isPrevious, isCurrent, isFuture;
-
-            if (period === 'weeks') {
-              date = new Date(currentDate);
-              date.setDate(currentDate.getDate() + (i * 7));
-              periodName = `Semaine du ${date.getDate()}/${date.getMonth() + 1}`;
-              isPrevious = i === -1;
-              isCurrent = i === 0;
-              isFuture = i === 1;
-            } else if (period === 'months') {
-              date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
-              periodName = date.toLocaleDateString('fr-FR', { month: 'long' });
-              isPrevious = i === -1;
-              isCurrent = i === 0;
-              isFuture = i === 1;
-            } else { // years
-              date = new Date(currentDate.getFullYear() + i, 0, 1);
-              periodName = date.getFullYear().toString();
-              isPrevious = i === -1;
-              isCurrent = i === 0;
-              isFuture = i === 1;
-            }
-
-            let predicted, actual, confidence;
-
-            // If no real data, show realistic small amounts instead of thousands
-            if (baseAmount === 0) {
-              if (isPrevious) {
-                actual = 0;
-                predicted = 0;
-                confidence = 0;
-              } else if (isCurrent) {
-                predicted = 0;
-                actual = 0;
-                confidence = 0;
-              } else {
-                predicted = 0;
-                actual = null;
-                confidence = 0;
-              }
+          if (salesResponse.ok) {
+            const salesData = await salesResponse.json();
+            if (salesData.success) {
+              setSalesPredictions(salesData.data);
+              console.log('📊 Real sales data loaded on startup:', salesData.data);
             } else {
-              if (isPrevious) {
-                // Previous period: show actual data
-                actual = Math.round(baseAmount * (0.8 + Math.random() * 0.4));
-                predicted = Math.round(actual * (0.9 + Math.random() * 0.2));
-                confidence = 100;
-              } else if (isCurrent) {
-                // Current period: show both predicted and actual
-                predicted = Math.round(baseAmount * (1 + (Math.random() - 0.5) * 0.2));
-                actual = Math.round(predicted * (0.85 + Math.random() * 0.3));
-                confidence = Math.round(85 + Math.random() * 10);
-              } else {
-                // Future period: only predictions
-                predicted = Math.round(baseAmount * (1 + (Math.random() - 0.5) * 0.3));
-                actual = null;
-                confidence = Math.round(75 + Math.random() * 10);
-              }
+              console.error('❌ Failed to load sales data on startup:', salesData.message);
+              setSalesPredictions([]);
             }
-
-            periods.push({
-              period: periodName.charAt(0).toUpperCase() + periodName.slice(1),
-              predicted: predicted,
-              actual: actual,
-              confidence: confidence,
-              isPrevious,
-              isCurrent,
-              isFuture
-            });
+          } else {
+            console.error('❌ API error on startup:', salesResponse.status);
+            setSalesPredictions([]);
           }
-
-          return periods;
-        };
-
-        setSalesPredictions(generatePredictions(timePeriod));
+        } catch (error) {
+          console.error('❌ Error fetching sales data on startup:', error);
+          setSalesPredictions([]);
+        }
 
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -340,72 +281,33 @@ const SupplierDashboard = () => {
   };
 
   // Function to handle time period change
-  const handleTimePeriodChange = (newPeriod) => {
+  const handleTimePeriodChange = async (newPeriod) => {
     setTimePeriod(newPeriod);
-    // Regenerate predictions for the new time period
-    const generatePredictions = (period) => {
-      const currentDate = new Date();
-      const periods = [];
-      const baseAmount = stats.totalRevenue > 0 ? stats.totalRevenue : 10000;
 
-      for (let i = -1; i <= 1; i++) { // Only 3 periods: previous, current, next
-        let date, periodName, isPrevious, isCurrent, isFuture;
+    try {
+      // Fetch REAL sales data from backend
+      const response = await fetch(`${API_URL}/api/statistics/sales/forecast?period=${newPeriod}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
 
-        if (period === 'weeks') {
-          date = new Date(currentDate);
-          date.setDate(currentDate.getDate() + (i * 7));
-          periodName = `Semaine du ${date.getDate()}/${date.getMonth() + 1}`;
-          isPrevious = i === -1;
-          isCurrent = i === 0;
-          isFuture = i === 1;
-        } else if (period === 'months') {
-          date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
-          periodName = date.toLocaleDateString('fr-FR', { month: 'long' });
-          isPrevious = i === -1;
-          isCurrent = i === 0;
-          isFuture = i === 1;
-        } else { // years
-          date = new Date(currentDate.getFullYear() + i, 0, 1);
-          periodName = date.getFullYear().toString();
-          isPrevious = i === -1;
-          isCurrent = i === 0;
-          isFuture = i === 1;
-        }
-
-        let predicted, actual, confidence;
-
-        if (isPrevious) {
-          // Previous period: show actual data
-          actual = Math.round(baseAmount * (0.8 + Math.random() * 0.4));
-          predicted = Math.round(actual * (0.9 + Math.random() * 0.2));
-          confidence = 100;
-        } else if (isCurrent) {
-          // Current period: show both predicted and actual
-          predicted = Math.round(baseAmount * (1 + (Math.random() - 0.5) * 0.2));
-          actual = Math.round(predicted * (0.85 + Math.random() * 0.3));
-          confidence = Math.round(85 + Math.random() * 10);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setSalesPredictions(data.data);
+          console.log('📊 Real sales data loaded for period:', newPeriod, data.data);
         } else {
-          // Future period: only predictions
-          predicted = Math.round(baseAmount * (1 + (Math.random() - 0.5) * 0.3));
-          actual = null;
-          confidence = Math.round(75 + Math.random() * 10);
+          console.error('❌ Failed to load sales data:', data.message);
+          // Fallback to basic data
+          setSalesPredictions([]);
         }
-
-        periods.push({
-          period: periodName.charAt(0).toUpperCase() + periodName.slice(1),
-          predicted: predicted,
-          actual: actual,
-          confidence: confidence,
-          isPrevious,
-          isCurrent,
-          isFuture
-        });
+      } else {
+        console.error('❌ API error:', response.status);
+        setSalesPredictions([]);
       }
-
-      return periods;
-    };
-
-    setSalesPredictions(generatePredictions(newPeriod));
+    } catch (error) {
+      console.error('❌ Error fetching sales data:', error);
+      setSalesPredictions([]);
+    }
   };
 
   if (loading) {
@@ -497,11 +399,13 @@ const SupplierDashboard = () => {
                         </span>
                       </div>
                       <div className="prediction-values">
-                        <div className="predicted-value">
-                          <span className="label">Prédit:</span>
-                          <span className="value">{formatCurrency(prediction.predicted)}</span>
-                        </div>
-                        {prediction.actual && (
+                        {prediction.predicted !== null && prediction.predicted !== undefined && (
+                          <div className="predicted-value">
+                            <span className="label">Prédit:</span>
+                            <span className="value">{formatCurrency(prediction.predicted)}</span>
+                          </div>
+                        )}
+                        {prediction.actual !== null && prediction.actual !== undefined && !prediction.isFuture && (
                           <div className="actual-value">
                             <span className="label">Réel:</span>
                             <span className="value">{formatCurrency(prediction.actual)}</span>
@@ -512,9 +416,11 @@ const SupplierDashboard = () => {
                         <div
                           className="prediction-fill"
                           style={{
-                            width: `${Math.min((prediction.predicted / 25000) * 100, 100)}%`,
+                            width: `${Math.min(((prediction.predicted || prediction.actual) / 25000) * 100, 100)}%`,
                             backgroundColor: prediction.actual ?
-                              (prediction.actual >= prediction.predicted * 0.9 ? '#10b981' : '#f59e0b') :
+                              (prediction.predicted ?
+                                (prediction.actual >= prediction.predicted * 0.9 ? '#10b981' : '#f59e0b') :
+                                '#10b981') :
                               '#3b82f6'
                           }}
                         ></div>

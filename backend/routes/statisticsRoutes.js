@@ -17,6 +17,9 @@ router.get('/revenue/chart', statisticsController.getRevenueChart);
 router.get('/revenue/total', statisticsController.getTotalRevenue);
 router.get('/revenue/monthly', statisticsController.getMonthlyRevenue);
 
+// ===== SALES FORECAST ROUTES =====
+router.get('/sales/forecast', auth, statisticsController.getSalesForecast);
+
 // ===== ORDER ROUTES =====
 router.get('/orders/chart', statisticsController.getOrdersChart);
 router.get('/orders/status-distribution', statisticsController.getOrderStatusDistribution);

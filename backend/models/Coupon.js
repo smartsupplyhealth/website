@@ -53,6 +53,11 @@ const couponSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Product'
     }],
+    clientSpecific: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Client',
+        default: null
+    },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });

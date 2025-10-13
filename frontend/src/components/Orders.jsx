@@ -20,7 +20,7 @@ const Orders = () => {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(8);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [orderToPay, setOrderToPay] = useState(null);
@@ -40,18 +40,18 @@ const Orders = () => {
 
   const fetchOrders = useCallback(async () => {
     try {
+      const LIMIT = 1000; // on tire “large” pour ne jamais retomber à 10
       console.log('Fetching orders with filter:', filter);
       setLoading(true);
       setError('');
 
-      let url = '/orders/my-orders';
-
+      let url;
       if (filter === 'all') {
-        url = '/orders/my-orders';
+        url = '/orders/my-orders?limit=1000';
       } else if (filter === 'payment-pending') {
-        url = '/orders/my-orders?paymentStatus=Pending';
+        url = '/orders/my-orders?paymentStatus=Pending&limit=1000';
       } else {
-        url = `/orders/my-orders?status=${filter}`;
+        url = `/orders/my-orders?status=${filter}&limit=1000`;
       }
 
       console.log('Fetching orders from URL:', url);
@@ -73,6 +73,7 @@ const Orders = () => {
       setLoading(false);
     }
   }, [filter]);
+
 
   useEffect(() => {
     fetchOrders();
@@ -102,11 +103,14 @@ const Orders = () => {
   });
 
   // Pagination logic
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+  const isAll = itemsPerPage === 'all';
+  const effectivePerPage = isAll ? filteredOrders.length : Number(itemsPerPage);
 
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / (effectivePerPage || 1)));
+  const startIndex = isAll ? 0 : (currentPage - 1) * effectivePerPage;
+  const endIndex = isAll ? filteredOrders.length : startIndex + effectivePerPage;
+
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
   // Reset to first page when search term or items per page changes
   useEffect(() => {
     setCurrentPage(1);
@@ -176,6 +180,26 @@ const Orders = () => {
     };
     const config = statusConfig[status] || { label: status, class: 'status-unknown' };
     return <span className={`status-badge ${config.class}`}>{config.label}</span>;
+  };
+
+  const getOrderMode = (order) => {
+    // Vérifier si c'est une auto-commande
+    if (order.notes && order.notes.includes('Auto-order created by n8n')) {
+      return <span className="status-badge status-auto">Auto</span>;
+    }
+
+    // Vérifier si c'est une auto-commande par le numéro de commande (format CMD + timestamp)
+    if (order.orderNumber && /^CMD\d{13}$/.test(order.orderNumber)) {
+      return <span className="status-badge status-auto">Auto</span>;
+    }
+
+    // Vérifier si c'est une auto-commande par les détails de paiement
+    if (order.paymentDetails && order.paymentDetails.method === 'auto_order') {
+      return <span className="status-badge status-auto">Auto</span>;
+    }
+
+    // Sinon, c'est une commande manuelle
+    return <span className="status-badge status-manual">Manuelle</span>;
   };
 
   const formatDate = (dateString) =>
@@ -1002,6 +1026,7 @@ const Orders = () => {
                         <th>N° Commande</th>
                         <th>Date</th>
                         <th>Montant Total</th>
+                        <th>Mode</th>
                         <th>Statut Commande</th>
                         <th>Statut Paiement</th>
                         <th>Détails</th>
@@ -1013,6 +1038,7 @@ const Orders = () => {
                           <td><strong>{order.orderNumber}</strong></td>
                           <td>{formatDate(order.createdAt)}</td>
                           <td><strong>{formatPrice(order.totalAmount)}</strong></td>
+                          <td>{getOrderMode(order)}</td>
                           <td>{getStatusBadge(order.status, order)}</td>
                           <td>{getPaymentStatusBadge(order.paymentStatus)}</td>
                           <td>
@@ -1039,12 +1065,14 @@ const Orders = () => {
                         <select
                           id="itemsPerPage"
                           value={itemsPerPage}
-                          onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                          className="items-select"
-                        >
+                          onChange={(e) => {
+                            const v = e.target.value === 'all' ? 'all' : Number(e.target.value);
+                            setItemsPerPage(v);
+                          }}>
                           <option value={4}>4</option>
                           <option value={8}>8</option>
                           <option value={12}>12</option>
+                          <option value="all">Tous</option>
                         </select>
                       </div>
 
@@ -1239,6 +1267,11 @@ const Orders = () => {
                         </span>
                       </div>
                     )}
+
+                    <div className="order-mode">
+                      <span className="label">Mode :</span>
+                      <span className="value">{getOrderMode(selectedOrder)}</span>
+                    </div>
                   </div>
                 )}
 

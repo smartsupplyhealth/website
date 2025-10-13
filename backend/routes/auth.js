@@ -19,6 +19,7 @@ const Client = require('../models/Client');
 const Supplier = require('../models/Supplier');
 const authController = require('../controllers/authController');
 const { notifyWelcome } = require('../services/notificationService');
+const { createWelcomeCoupon } = require('../controllers/couponController');
 
 const router = express.Router();
 
@@ -56,7 +57,7 @@ router.post('/register', validateRegister, checkValidation, async (req, res) => 
     if (role === 'client') {
       // Create a new client (Stripe customer creation is optional)
       const clientData = { ...req.body };
-      
+
       // Only create Stripe customer if Stripe is properly configured
       if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY.startsWith('sk_')) {
         try {
@@ -79,9 +80,18 @@ router.post('/register', validateRegister, checkValidation, async (req, res) => 
 
     await user.save();
 
-    // Create welcome notification for new users
+    // Create welcome notification and coupon for new clients
     if (role === 'client') {
       await notifyWelcome(user._id, user.name);
+
+      // Create welcome coupon for new client
+      try {
+        const welcomeCoupon = await createWelcomeCoupon(user._id, user.name);
+        console.log(`🎫 Welcome coupon created for new client: ${welcomeCoupon.code}`);
+      } catch (couponError) {
+        console.error('Error creating welcome coupon:', couponError);
+        // Don't fail registration if coupon creation fails
+      }
     }
 
     const token = generateToken(user._id, role);

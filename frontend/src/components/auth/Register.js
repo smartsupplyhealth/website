@@ -13,9 +13,7 @@ const Register = () => {
     role: 'client',
     clinicName: '',
     clinicType: '',
-    address: '',
-    companyName: '',
-    companyType: ''
+    address: ''
   });
   const [formErrors, setFormErrors] = useState({});
 
@@ -51,13 +49,6 @@ const Register = () => {
         break;
       case 'clinicType':
         if (currentData.role === 'client' && !value.trim()) return 'Le type de clinique est requis.';
-        break;
-      case 'companyName':
-        if (currentData.role === 'supplier' && !value.trim()) return "Le nom de l'entreprise est requis.";
-        if (currentData.role === 'supplier' && value.trim() && !/^[a-zA-Z\s]+$/.test(value)) return "Le nom de l'entreprise ne doit contenir que des lettres et des espaces.";
-        break;
-      case 'companyType':
-        if (currentData.role === 'supplier' && !value.trim()) return "Le type d'entreprise est requis.";
         break;
       default:
         break;
@@ -272,7 +263,7 @@ const Register = () => {
             <>
               <div className="auth-form-row">
                 <div className="auth-form-group">
-                  <label className="auth-label">Nom du projet</label>
+                  <label className="auth-label">Nom de l'entreprise</label>
                   <div className="auth-input-wrapper">
                     <svg className="auth-input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -283,7 +274,7 @@ const Register = () => {
                       value={formData.clinicName}
                       onChange={handleChange}
                       required
-                      placeholder="Nom de votre clinique"
+                      placeholder="Nom de votre entreprise"
                       className={`auth-input ${formErrors.clinicName ? 'is-invalid' : ''}`}
                       disabled={loading}
                     />
@@ -292,7 +283,7 @@ const Register = () => {
                 </div>
 
                 <div className="auth-form-group">
-                  <label className="auth-label">Type de projet</label>
+                  <label className="auth-label">Type d'entreprise</label>
                   <div className="auth-input-wrapper">
                     <svg className="auth-input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v6a2 2 0 002 2h6a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -338,76 +329,6 @@ const Register = () => {
             </>
           )}
 
-          {formData.role === 'supplier' && (
-            <>
-              <div className="auth-form-row">
-                <div className="auth-form-group">
-                  <label className="auth-label">Nom de l'entreprise</label>
-                  <div className="auth-input-wrapper">
-                    <svg className="auth-input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                    <input
-                      type="text"
-                      name="companyName"
-                      value={formData.companyName}
-                      onChange={handleChange}
-                      required
-                      placeholder="Nom de votre entreprise"
-                      className={`auth-input ${formErrors.companyName ? 'is-invalid' : ''}`}
-                      disabled={loading}
-                    />
-                  </div>
-                  {formErrors.companyName && <p className="auth-error-text">{formErrors.companyName}</p>}
-                </div>
-
-                <div className="auth-form-group">
-                  <label className="auth-label">Type d'entreprise</label>
-                  <div className="auth-input-wrapper">
-                    <svg className="auth-input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v6a2 2 0 002 2h6a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    <select
-                      name="companyType"
-                      value={formData.companyType}
-                      onChange={handleChange}
-                      required
-                      className={`auth-input auth-select ${formErrors.companyType ? 'is-invalid' : ''}`}
-                      disabled={loading}
-                    >
-                      <option value="">Choisir le type</option>
-                      <option value="pharmaceutical">Pharmaceutique</option>
-                      <option value="medical_device">Dispositif Médical</option>
-                      <option value="laboratory">Laboratoire</option>
-                      <option value="other">Autre</option>
-                    </select>
-                  </div>
-                  {formErrors.companyType && <p className="auth-error-text">{formErrors.companyType}</p>}
-                </div>
-              </div>
-
-              <div className="auth-form-group">
-                <label className="auth-label">Adresse</label>
-                <div className="auth-input-wrapper">
-                  <svg className="auth-input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <input
-                    type="text"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    required
-                    placeholder="Adresse complète"
-                    className={`auth-input ${formErrors.address ? 'is-invalid' : ''}`}
-                    disabled={loading}
-                  />
-                </div>
-                {formErrors.address && <p className="auth-error-text">{formErrors.address}</p>}
-              </div>
-            </>
-          )}
 
           <button
             type="submit"

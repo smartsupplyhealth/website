@@ -304,6 +304,18 @@
   font-weight: 700;
 }
 
+.status-auto {
+  background: linear-gradient(135deg, #e6f3ff 0%, #3182ce 100%);
+  color: #2c5282;
+  border: 1px solid #3182ce;
+}
+
+.status-manual {
+  background: linear-gradient(135deg, #f0fff4 0%, #38a169 100%);
+  color: #2f855a;
+  border: 1px solid #38a169;
+}
+
 /* Badges de mode de paiement */
 .payment-badge {
   display: inline-block;
@@ -913,6 +925,30 @@
   font-size: 1rem;
 }
 
+.order-mode {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  margin-top: 10px;
+  background: #f0f9ff;
+  border-radius: 4px;
+  padding: 10px 15px;
+  border: 1px solid #e0f2fe;
+}
+
+.order-mode .label {
+  color: #4a5568;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.order-mode .value {
+  color: #2d3748;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
 /* Responsive design for payment breakdown */
 @media (max-width: 768px) {
   .payment-breakdown {
@@ -922,7 +958,8 @@
 
   .breakdown-item,
   .breakdown-total,
-  .payment-method {
+  .payment-method,
+  .order-mode {
     flex-direction: column;
     align-items: flex-start;
     gap: 5px;
@@ -930,7 +967,8 @@
 
   .breakdown-item .value,
   .breakdown-total .value,
-  .payment-method .value {
+  .payment-method .value,
+  .order-mode .value {
     align-self: flex-end;
   }
 }

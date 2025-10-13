@@ -1,46 +1,27 @@
-# Dockerfile pour le backend SmartSupply Health
-FROM node:18-alpine
+# Use Node.js 20 Alpine as base image
+FROM node:20-alpine
 
-# Définir le répertoire de travail
+# Set working directory
 WORKDIR /app
 
-# Installer les dépendances système nécessaires
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    && rm -rf /var/cache/apk/*
-
-# Copier les fichiers package.json
+# Copy package files
 COPY package*.json ./
 
-# Installer les dépendances
-RUN npm ci --only=production && npm cache clean --force
+# Install dependencies
+RUN npm ci --only=production --legacy-peer-deps
 
-# Copier le code source
+# Copy source code
 COPY . .
 
-# Créer un utilisateur non-root pour la sécurité
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
-# Changer la propriété des fichiers
-RUN chown -R nodejs:nodejs /app
-USER nodejs
-
-# Créer le dossier uploads
+# Create uploads directory
 RUN mkdir -p uploads
 
-# Exposer le port
+# Expose port
 EXPOSE 5000
-
-# Variables d'environnement
-ENV NODE_ENV=production
-ENV PORT=5000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD node healthcheck.js
+  CMD node healthcheck.js
 
-# Script de démarrage
-CMD ["npm", "start"]
+# Start the application
+CMD ["node", "index.js"]

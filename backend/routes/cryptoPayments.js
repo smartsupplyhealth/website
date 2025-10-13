@@ -23,4 +23,19 @@ router.post('/webhook', cryptoPaymentController.handleCryptoWebhook);
 // @access  Public
 router.get('/supported-currencies', cryptoPaymentController.getSupportedCryptocurrencies);
 
+// @route   POST /api/crypto-payments/confirm/:orderId
+// @desc    Manually confirm a crypto payment (for testing)
+// @access  Private
+router.post('/confirm/:orderId', auth, cryptoPaymentController.confirmCryptoPayment);
+
+// @route   GET /api/crypto-payments/exchange-rates
+// @desc    Get current exchange rates for cryptocurrencies
+// @access  Public
+router.get('/exchange-rates', cryptoPaymentController.getExchangeRates);
+
+// @route   POST /api/crypto-payments/convert
+// @desc    Convert EUR to cryptocurrency
+// @access  Public
+router.post('/convert', cryptoPaymentController.convertEurToCrypto);
+
 module.exports = router;

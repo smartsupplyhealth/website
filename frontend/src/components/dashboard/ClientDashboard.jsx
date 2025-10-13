@@ -34,7 +34,7 @@ export default function ClientDashboard() {
         setLoading(true);
 
         // Fetch recent orders
-        const ordersResponse = await fetch(`${API_URL}/api/orders`, {
+        const ordersResponse = await fetch(`${API_URL}/api/orders/my-orders`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const ordersData = await ordersResponse.json();

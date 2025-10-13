@@ -1,50 +1,49 @@
-version: '3.8'
-
 services:
-  # Base de données MongoDB
+  # MongoDB
   mongodb:
-    image: mongo:6.0
+    image: mongo:7.0
     container_name: smartsupply-mongodb
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password123
-      MONGO_INITDB_DATABASE: smartsupply
+      MONGO_INITDB_DATABASE: testneder
     ports:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
-      - ./backend/scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     networks:
       - smartsupply-network
 
-  # Backend API
+  # Backend
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: neder5/smarthealth-backend:final1am
     container_name: smartsupply-backend
     restart: unless-stopped
-    env_file:
-      - ./backend/.env
     environment:
       NODE_ENV: production
       PORT: 5000
-      MONGODB_URI: mongodb://admin:password123@mongodb:27017/smartsupply?authSource=admin
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/testneder?authSource=admin
+      JWT_SECRET: your-jwt-secret-here
+      STRIPE_SECRET_KEY: your_stripe_secret_key_here
+      STRIPE_PUBLISHABLE_KEY: pk_test_51S2sUD0FbokXntu8KiGeYOvvKJjB8gm4OaNcO16L0xKkmUMqAnQ6ibxyxlHOAb0sT6JlxRRGWhXe9gF1cpxIe8n500TJFE7IWv
+      SENDGRID_API_KEY: your_sendgrid_api_key_here
+      EMAIL_FROM: smartsupplyhealth@gmail.com
+      GEMINI_API_KEY: AIzaSyDjfpYOAfPQzlMyK2Of60FasPgFtpkVyjI
+      SMTP_EMAIL: smartsupplyhealth@gmail.com
+      SMTP_PASSWORD: lads lukm nxff ekzs
     ports:
       - "5000:5000"
     depends_on:
       - mongodb
     volumes:
-      - ./backend/uploads:/app/backend/uploads
+      - backend_uploads:/app/uploads
     networks:
       - smartsupply-network
 
-  # Frontend React
+  # Frontend
   frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend
+    image: neder5/smarthealth-frontend:final1am
     container_name: smartsupply-frontend
     restart: unless-stopped
     environment:
@@ -57,26 +56,11 @@ services:
     networks:
       - smartsupply-network
 
-  # Nginx Reverse Proxy
-  nginx:
-    image: nginx:alpine
-    container_name: smartsupply-nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - frontend
-      - backend
-    networks:
-      - smartsupply-network
-
 volumes:
   mongodb_data:
-
+    driver: local
+  backend_uploads:
+    driver: local
 
 networks:
   smartsupply-network:

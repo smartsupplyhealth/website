@@ -6,6 +6,144 @@ const Order = require('../models/Order');
 const mongoose = require('mongoose');
 
 class StatisticsService {
+  constructor() {
+    this.salesCache = new Map(); // Cache for real sales data
+  }
+
+  // ===== SALES FORECAST METHODS =====
+  async getSalesForecast(supplierId, period = 'weeks') {
+    try {
+      const currentDate = new Date();
+      const periods = [];
+
+      // Get supplier's products
+      const supplierProducts = await Product.find({ supplier: supplierId }).select('_id');
+      const productIds = supplierProducts.map(p => p._id);
+
+      // Generate periods based on type
+      for (let i = -1; i <= 1; i++) { // Previous, current, next
+        let startDate, endDate, periodName, isPrevious, isCurrent, isFuture;
+
+        if (period === 'weeks') {
+          // Fix dates to specific weeks to ensure stability
+          const weekStart = new Date(currentDate);
+          weekStart.setDate(currentDate.getDate() - currentDate.getDay() + 1); // Monday of current week
+          startDate = new Date(weekStart);
+          startDate.setDate(weekStart.getDate() + (i * 7));
+          endDate = new Date(startDate);
+          endDate.setDate(startDate.getDate() + 6);
+          periodName = `Semaine du ${startDate.getDate()}/${startDate.getMonth() + 1}`;
+        } else if (period === 'months') {
+          // Fix dates to specific months
+          startDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+          endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + i + 1, 0);
+          periodName = startDate.toLocaleDateString('fr-FR', { month: 'long' });
+        } else { // years
+          // Fix dates to specific years
+          startDate = new Date(currentDate.getFullYear() + i, 0, 1);
+          endDate = new Date(currentDate.getFullYear() + i, 11, 31);
+          periodName = startDate.getFullYear().toString();
+        }
+
+        isPrevious = i === -1;
+        isCurrent = i === 0;
+        isFuture = i === 1;
+
+        // Calculate REAL sales data for this period (with cache)
+        const cacheKey = `${supplierId}_${period}_${i}_${startDate.toISOString()}_${endDate.toISOString()}`;
+        let realSales = this.salesCache.get(cacheKey);
+
+        if (!realSales) {
+          realSales = await this.calculateRealSales(supplierId, productIds, startDate, endDate);
+          this.salesCache.set(cacheKey, realSales);
+        }
+
+        // Generate prediction (for now, simple algorithm)
+        const predicted = this.generatePrediction(realSales, isPrevious, isCurrent, isFuture);
+
+        periods.push({
+          period: periodName,
+          predicted: isPrevious ? null : predicted, // No prediction for past periods
+          actual: realSales.total,
+          confidence: isPrevious ? 100 : isCurrent ? 85 : 75,
+          isPrevious,
+          isCurrent,
+          isFuture,
+          breakdown: realSales.breakdown
+        });
+      }
+
+      return periods;
+    } catch (error) {
+      console.error('Error in getSalesForecast:', error);
+      throw error;
+    }
+  }
+
+  async calculateRealSales(supplierId, productIds, startDate, endDate) {
+    try {
+      // Get all orders for this supplier in the period with valid payment status
+      const orders = await Order.find({
+        'items.product': { $in: productIds },
+        createdAt: { $gte: startDate, $lte: endDate },
+        paymentStatus: { $in: ['Paid', 'paid', 'Confirmed', 'confirmed', 'Success', 'success'] },
+        status: { $ne: 'cancelled' }
+      }).populate('items.product');
+
+      let totalSales = 0;
+      let autoOrderSales = 0;
+      let cardSales = 0;
+      let cryptoSales = 0;
+
+      orders.forEach(order => {
+        // Calculate sales for this supplier's products only
+        const supplierItems = order.items.filter(item =>
+          productIds.includes(item.product._id)
+        );
+
+        const orderAmount = supplierItems.reduce((sum, item) =>
+          sum + (item.quantity * item.unitPrice), 0
+        );
+
+        totalSales += orderAmount;
+
+        // Categorize by payment method
+        if (order.paymentMethod === 'auto' || order.paymentDetails?.method === 'auto') {
+          autoOrderSales += orderAmount;
+        } else if (order.paymentMethod === 'card' || order.paymentDetails?.method === 'card') {
+          cardSales += orderAmount;
+        } else if (order.paymentMethod === 'crypto' || order.paymentDetails?.method === 'crypto') {
+          cryptoSales += orderAmount;
+        }
+      });
+
+      return {
+        total: Math.round(totalSales * 100) / 100, // Round to 2 decimals
+        breakdown: {
+          autoOrder: Math.round(autoOrderSales * 100) / 100,
+          card: Math.round(cardSales * 100) / 100,
+          crypto: Math.round(cryptoSales * 100) / 100
+        }
+      };
+    } catch (error) {
+      console.error('Error calculating real sales:', error);
+      return { total: 0, breakdown: { autoOrder: 0, card: 0, crypto: 0 } };
+    }
+  }
+
+  generatePrediction(realSales, isPrevious, isCurrent, isFuture) {
+    if (isPrevious) {
+      // For previous period, prediction should be close to actual (no random)
+      return Math.round(realSales.total * 0.95); // Fixed 95% of actual
+    } else if (isCurrent) {
+      // For current period, prediction based on actual data (no random)
+      return Math.round(realSales.total * 1.05); // Fixed 105% of actual
+    } else {
+      // For future period, prediction based on historical data (no random)
+      return Math.round(realSales.total * 1.1); // Fixed 110% of actual
+    }
+  }
+
   // ===== DASHBOARD OVERVIEW STATS =====
   async getDashboardOverview() {
     try {
@@ -61,7 +199,12 @@ class StatisticsService {
   async getTotalRevenue() {
     try {
       const result = await Order.aggregate([
-        { $match: { paymentStatus: 'Paid' } },
+        {
+          $match: {
+            paymentStatus: { $in: ['Paid', 'paid', 'Confirmed', 'confirmed', 'Success', 'success'] },
+            status: { $ne: 'cancelled' }
+          }
+        },
         { $group: { _id: null, total: { $sum: '$totalAmount' } } }
       ]);
       return result[0]?.total || 0;
@@ -74,10 +217,10 @@ class StatisticsService {
     try {
       const currentDate = new Date();
       const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      
+
       const result = await Order.aggregate([
-        { 
-          $match: { 
+        {
+          $match: {
             paymentStatus: 'Paid',
             createdAt: { $gte: startOfMonth }
           }
@@ -99,21 +242,21 @@ class StatisticsService {
 
       switch (period) {
         case '7days':
-          matchCondition.createdAt = { 
-            $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) 
+          matchCondition.createdAt = {
+            $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
           };
           groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } };
           break;
         case '30days':
-          matchCondition.createdAt = { 
-            $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) 
+          matchCondition.createdAt = {
+            $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
           };
           groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } };
           break;
         case '12months':
         default:
-          matchCondition.createdAt = { 
-            $gte: new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), 1) 
+          matchCondition.createdAt = {
+            $gte: new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), 1)
           };
           groupBy = { $dateToString: { format: "%Y-%m", date: "$createdAt" } };
           break;
@@ -154,21 +297,21 @@ class StatisticsService {
 
       switch (period) {
         case '7days':
-          matchCondition.createdAt = { 
-            $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) 
+          matchCondition.createdAt = {
+            $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
           };
           groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } };
           break;
         case '30days':
-          matchCondition.createdAt = { 
-            $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) 
+          matchCondition.createdAt = {
+            $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
           };
           groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } };
           break;
         case '12months':
         default:
-          matchCondition.createdAt = { 
-            $gte: new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), 1) 
+          matchCondition.createdAt = {
+            $gte: new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), 1)
           };
           groupBy = { $dateToString: { format: "%Y-%m", date: "$createdAt" } };
           break;
@@ -193,7 +336,7 @@ class StatisticsService {
       result.forEach(item => {
         const date = item._id.date;
         const status = item._id.status;
-        
+
         if (!chartData[date]) {
           chartData[date] = { date, confirmed: 0, processing: 0, delivered: 0, cancelled: 0 };
         }
@@ -327,15 +470,15 @@ class StatisticsService {
 
       switch (period) {
         case '30days':
-          matchCondition.createdAt = { 
-            $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) 
+          matchCondition.createdAt = {
+            $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
           };
           groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } };
           break;
         case '12months':
         default:
-          matchCondition.createdAt = { 
-            $gte: new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), 1) 
+          matchCondition.createdAt = {
+            $gte: new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), 1)
           };
           groupBy = { $dateToString: { format: "%Y-%m", date: "$createdAt" } };
           break;

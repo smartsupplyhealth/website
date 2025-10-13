@@ -39,7 +39,7 @@ const getStatusBadge = (status) => {
   return <span className={`status-badge ${cfg.class}`}>{cfg.label}</span>;
 };
 
-const getPaymentMethodBadge = (method, orderStatus, paymentStatus) => {
+const getPaymentMethodBadge = (method, orderStatus, paymentStatus, order) => {
   const methodConfig = {
     'stripe': { label: 'Carte bancaire', class: 'payment-card' },
     'crypto': { label: 'Crypto', class: 'payment-crypto' },
@@ -48,7 +48,17 @@ const getPaymentMethodBadge = (method, orderStatus, paymentStatus) => {
     'card': { label: 'Carte bancaire', class: 'payment-card' },
     'bitcoin': { label: 'Crypto', class: 'payment-crypto' },
     'ethereum': { label: 'Crypto', class: 'payment-crypto' },
+    'auto_order': { label: 'Carte bancaire', class: 'payment-card' }, // Auto-order = Carte bancaire par défaut
   };
+
+  // Si c'est une auto-commande, afficher "Carte bancaire" (paiement automatique)
+  if (order && (
+    (order.notes && order.notes.includes('Auto-order created by n8n')) ||
+    (order.orderNumber && /^CMD\d{13}$/.test(order.orderNumber)) ||
+    method === 'auto_order'
+  )) {
+    return <span className="payment-badge payment-card">Carte bancaire</span>;
+  }
 
   // Si pas de méthode ou méthode vide
   if (!method || method === '' || method === 'undefined' || method === 'null') {
@@ -58,6 +68,26 @@ const getPaymentMethodBadge = (method, orderStatus, paymentStatus) => {
 
   const cfg = methodConfig[method] || { label: method, class: 'payment-unknown' };
   return <span className={`payment-badge ${cfg.class}`}>{cfg.label}</span>;
+};
+
+const getOrderMode = (order) => {
+  // Vérifier si c'est une auto-commande
+  if (order.notes && order.notes.includes('Auto-order created by n8n')) {
+    return <span className="status-badge status-auto">Auto</span>;
+  }
+
+  // Vérifier si c'est une auto-commande par le numéro de commande (format CMD + timestamp)
+  if (order.orderNumber && /^CMD\d{13}$/.test(order.orderNumber)) {
+    return <span className="status-badge status-auto">Auto</span>;
+  }
+
+  // Vérifier si c'est une auto-commande par les détails de paiement
+  if (order.paymentMethod && order.paymentMethod === 'auto_order') {
+    return <span className="status-badge status-auto">Auto</span>;
+  }
+
+  // Sinon, c'est une commande manuelle
+  return <span className="status-badge status-manual">Manuelle</span>;
 };
 
 /* ===== Normalisation serveur -> UI ===== */
@@ -131,8 +161,8 @@ export default function SupplierOrders() {
 
       const url =
         filter === 'all'
-          ? `${API_URL}/api/supplier/orders`
-          : `${API_URL}/api/supplier/orders?status=${encodeURIComponent(filter)}`;
+          ? `${API_URL}/api/supplier/orders?limit=1000`
+          : `${API_URL}/api/supplier/orders?status=${encodeURIComponent(filter)}&limit=1000`;
 
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
@@ -348,7 +378,7 @@ export default function SupplierOrders() {
                     <th>Montant Total</th>
                     <th>Mode de Paiement</th>
                     <th>Statut</th>
-                    <th>Actions</th>
+                    <th>Mode</th>
                     <th>Détails</th>
                   </tr>
                 </thead>
@@ -381,25 +411,10 @@ export default function SupplierOrders() {
                         </div>
                       </td>
                       <td><strong>{formatPrice(order.totalAmount)}</strong></td>
-                      <td>{getPaymentMethodBadge(order.paymentMethod, order.status, order.paymentStatus)}</td>
+                      <td>{getPaymentMethodBadge(order.paymentMethod, order.status, order.paymentStatus, order)}</td>
                       <td>{getStatusBadge(order.status)}</td>
                       <td>
-                        <div className="order-actions">
-                          <select
-                            value={order.status || 'pending'}
-                            onChange={(e) => {
-                              updateOrderStatus(order._id, e.target.value);
-                            }}
-                            className="status-select"
-                            disabled={['delivered', 'cancelled'].includes(order.status)}
-                          >
-                            <option value="pending">En attente</option>
-                            <option value="confirmed">Confirmée</option>
-                            <option value="processing">En traitement</option>
-                            <option value="delivered">Livrée</option>
-                            <option value="cancelled">Annulée</option>
-                          </select>
-                        </div>
+                        {getOrderMode(order)}
                       </td>
                       <td>
                         <button
@@ -536,7 +551,7 @@ export default function SupplierOrders() {
                 </div>
                 <div className="info-row">
                   <span className="label">Mode de Paiement:</span>
-                  <span className="value">{getPaymentMethodBadge(selectedOrder.paymentMethod, selectedOrder.status, selectedOrder.paymentStatus)}</span>
+                  <span className="value">{getPaymentMethodBadge(selectedOrder.paymentMethod, selectedOrder.status, selectedOrder.paymentStatus, selectedOrder)}</span>
                 </div>
                 <div className="info-row">
                   <span className="label">Statut Paiement:</span>
@@ -548,6 +563,10 @@ export default function SupplierOrders() {
                             selectedOrder.paymentStatus || '—'}
                     </span>
                   </span>
+                </div>
+                <div className="info-row">
+                  <span className="label">Mode:</span>
+                  <span className="value">{getOrderMode(selectedOrder)}</span>
                 </div>
                 {selectedOrder.deliveryAddress && (
                   <div className="info-row">

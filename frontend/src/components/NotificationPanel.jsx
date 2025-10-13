@@ -9,12 +9,14 @@ const NotificationPanel = () => {
         showNotifications,
         setShowNotifications,
         markAsRead,
+        markAsUnread,
         markAllAsRead,
         deleteNotification
     } = useNotifications();
 
     const [showScrollToTop, setShowScrollToTop] = useState(false);
     const [isScrollable, setIsScrollable] = useState(false);
+    const [isMarkingAll, setIsMarkingAll] = useState(false);
     const contentRef = useRef(null);
 
     console.log('NotificationPanel rendered, showNotifications:', showNotifications);
@@ -67,6 +69,34 @@ const NotificationPanel = () => {
         }
     };
 
+    const scrollToBottom = () => {
+        if (contentRef.current) {
+            contentRef.current.scrollTo({
+                top: contentRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    };
+
+    // Auto-scroll vers le bas quand le panneau s'ouvre
+    useEffect(() => {
+        if (showNotifications && contentRef.current && notifications.length > 0) {
+            // Petit délai pour laisser le temps au DOM de se rendre
+            setTimeout(() => {
+                scrollToBottom();
+            }, 100);
+        }
+    }, [showNotifications, notifications.length]);
+
+    const handleMarkAllAsRead = async () => {
+        setIsMarkingAll(true);
+        try {
+            await markAllAsRead();
+        } finally {
+            setIsMarkingAll(false);
+        }
+    };
+
     const formatTime = (dateString) => {
         const date = new Date(dateString);
         const now = new Date();
@@ -109,10 +139,11 @@ const NotificationPanel = () => {
                     {notifications.some(n => !n.isRead) && (
                         <button
                             className="mark-all-read-btn"
-                            onClick={markAllAsRead}
+                            onClick={handleMarkAllAsRead}
+                            disabled={isMarkingAll}
                             title="Marquer tout comme lu"
                         >
-                            Tout marquer comme lu
+                            {isMarkingAll ? '⏳' : '✓'} Tout marquer comme lu
                         </button>
                     )}
                     <button
@@ -164,6 +195,22 @@ const NotificationPanel = () => {
                                             style={{ backgroundColor: getPriorityColor(notification.priority) }}
                                         ></div>
                                         <button
+                                            className={`mark-read-btn ${notification.isRead ? 'read' : 'unread'}`}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (notification.isRead) {
+                                                    // Mark as unread
+                                                    markAsUnread(notification._id);
+                                                } else {
+                                                    // Mark as read
+                                                    markAsRead(notification._id);
+                                                }
+                                            }}
+                                            title={notification.isRead ? "Marquer comme non lu" : "Marquer comme lu"}
+                                        >
+                                            {notification.isRead ? "👁️" : "✓"}
+                                        </button>
+                                        <button
                                             className="delete-btn"
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -182,21 +229,35 @@ const NotificationPanel = () => {
                                             Commande #{notification.orderId.orderNumber}
                                         </span>
                                         <span className="order-status">
-                                            {notification.orderId.status}
+                                            {notification.orderId.status === 'delivered' ? 'CONFIRMÉE' :
+                                                notification.orderId.status === 'confirmed' ? 'CONFIRMÉE' :
+                                                    notification.orderId.status === 'paid' ? 'PAYÉE' :
+                                                        notification.orderId.status === 'pending' ? 'EN ATTENTE' :
+                                                            notification.orderId.status === 'cancelled' ? 'ANNULÉE' :
+                                                                notification.orderId.status?.toUpperCase() || 'EN ATTENTE'}
                                         </span>
                                     </div>
                                 )}
                             </div>
                         ))}
 
-                        {/* Scroll to top button */}
-                        <button
-                            className={`scroll-to-top ${showScrollToTop ? 'visible' : ''}`}
-                            onClick={scrollToTop}
-                            title="Remonter en haut"
-                        >
-                            ↑ Haut
-                        </button>
+                        {/* Scroll buttons */}
+                        <div className="scroll-buttons">
+                            <button
+                                className={`scroll-to-top ${showScrollToTop ? 'visible' : ''}`}
+                                onClick={scrollToTop}
+                                title="Remonter en haut"
+                            >
+                                ↑ Haut
+                            </button>
+                            <button
+                                className="scroll-to-bottom"
+                                onClick={scrollToBottom}
+                                title="Aller en bas"
+                            >
+                                ↓ Bas
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

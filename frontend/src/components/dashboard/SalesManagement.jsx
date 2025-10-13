@@ -23,6 +23,16 @@ const SalesManagement = () => {
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [isStockModalOpen, setIsStockModalOpen] = useState(false);
 
+    // Order statistics state
+    const [orderStats, setOrderStats] = useState({
+        totalOrders: 0,
+        cancelledOrders: 0,
+        netOrders: 0,
+        totalRevenue: 0,
+        cancelledRevenue: 0,
+        netRevenue: 0
+    });
+
     // Fetch all products for counters (once)
     useEffect(() => {
         const fetchAllProducts = async () => {
@@ -135,8 +145,75 @@ const SalesManagement = () => {
     const handleCloseStockModal = () => {
         setSelectedProduct(null);
         setIsStockModalOpen(false);
-        // Refresh products after stock adjustment
-        window.location.reload();
+    };
+
+    // Handle stock update success
+    const handleStockUpdated = async () => {
+        // Refresh products data after stock adjustment
+        await fetchProducts();
+    };
+
+    // Fetch products function
+    const fetchProducts = async () => {
+        try {
+            setLoading(true);
+            setError('');
+
+            const res = await fetch(`${API_URL}/api/supplier/orders`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+
+            if (!json.success) {
+                setError(json.message || "Erreur lors du chargement des données.");
+                setProducts([]);
+                return;
+            }
+
+            // Set order statistics
+            if (json.stats) {
+                setOrderStats({
+                    totalOrders: json.stats.totalOrders || 0,
+                    cancelledOrders: json.stats.cancelledOrders || 0,
+                    netOrders: json.stats.netOrders || 0,
+                    totalRevenue: json.stats.totalRevenue || 0,
+                    cancelledRevenue: json.stats.cancelledRevenue || 0,
+                    netRevenue: json.stats.netRevenue || 0
+                });
+            }
+
+            // Extract unique products from orders
+            const productMap = new Map();
+            (json.data || []).forEach((order) => {
+                order.items?.forEach((item) => {
+                    if (item.product && item.product._id) {
+                        const product = item.product;
+                        if (!productMap.has(product._id)) {
+                            productMap.set(product._id, {
+                                _id: product._id,
+                                name: product.name || "Produit inconnu",
+                                stock: product.stock || 0,
+                                price: product.price || 0,
+                                category: product.category || "Non catégorisé"
+                            });
+                        }
+                    }
+                });
+            });
+
+            setProducts(Array.from(productMap.values()));
+            setTotalProducts(Array.from(productMap.values()).length);
+            setTotalPages(Math.ceil(Array.from(productMap.values()).length / itemsPerPage));
+
+        } catch (e) {
+            console.error(e);
+            setError("Erreur de connexion au serveur. Veuillez réessayer.");
+            setProducts([]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     if (loading) {
@@ -290,6 +367,7 @@ const SalesManagement = () => {
                 <StockAdjustModal
                     product={selectedProduct}
                     onClose={handleCloseStockModal}
+                    onStockUpdated={handleStockUpdated}
                 />
             )}
 

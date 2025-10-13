@@ -1,51 +1,25 @@
-// models/Order.js
 const mongoose = require('mongoose');
 const mongoosePaginate = require('mongoose-paginate-v2');
 
-const orderItemSchema = new mongoose.Schema({
-  product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
-  quantity: { type: Number, required: true, min: 1 },
-  unitPrice: { type: Number, required: true },
-  totalPrice: { type: Number, required: true }
-});
-
-const orderSchema = new mongoose.Schema({
-  orderNumber: { type: String, required: true, unique: true },
+const OrderSchema = new mongoose.Schema({
+  orderNumber: { type: String, required: true, unique: true, index: true }, // 🔒 empêche les doublons
   client: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', required: true },
-  items: [orderItemSchema],
+  items: [
+    {
+      product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+      quantity: { type: Number, required: true },
+      unitPrice: { type: Number, required: true },
+      totalPrice: { type: Number, required: true },
+    }
+  ],
   totalAmount: { type: Number, required: true },
-  deliveryAddress: {
-    street: { type: String, required: true },
-    city: { type: String, required: true },
-    postalCode: { type: String, required: true },
-    country: { type: String, required: true }
-  },
-  notes: { type: String, default: '' },
-  status: {
-    type: String,
-    enum: ['pending', 'confirmed', 'processing', 'delivered', 'cancelled'],
-    default: 'pending'
-  },
-  paymentStatus: {
-    type: String,
-    enum: ['Pending', 'Paid', 'Failed', 'Expired'],
-    default: 'Pending',
-  },
-  paymentDetails: {
-    method: { type: String },
-    transactionId: { type: String },
-  },
-  coupon: {
-    code: { type: String },
-    discountAmount: { type: Number, default: 0 },
-    couponId: { type: mongoose.Schema.Types.ObjectId, ref: 'Coupon' }
-  },
-  originalAmount: { type: Number },
-  finalAmount: { type: Number },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-});
+  deliveryAddress: { type: Object },
+  notes: { type: String },
+  mode: { type: String, enum: ['manuelle', 'auto', 'manual'], default: 'manuelle' },
+  status: { type: String, default: 'pending' },
+  paymentStatus: { type: String, default: 'Pending' },
+  paymentDetails: { type: Object },
+}, { timestamps: true });
 
-orderSchema.plugin(mongoosePaginate);
-
-module.exports = mongoose.model('Order', orderSchema);
+OrderSchema.plugin(mongoosePaginate);
+module.exports = mongoose.model('Order', OrderSchema);

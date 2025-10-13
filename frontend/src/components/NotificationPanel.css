@@ -3,7 +3,7 @@
     top: 80px;
     right: 20px;
     width: 420px;
-    max-height: 70vh;
+    max-height: 80vh;
     background: white;
     border-radius: 16px;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
@@ -61,9 +61,15 @@
     transition: all 0.2s ease;
 }
 
-.mark-all-read-btn:hover {
+.mark-all-read-btn:hover:not(:disabled) {
     background: #2563eb;
     transform: translateY(-1px);
+}
+
+.mark-all-read-btn:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.7;
 }
 
 .close-btn {
@@ -92,6 +98,9 @@
     scrollbar-width: thin;
     scrollbar-color: #cbd5e0 #f7fafc;
     position: relative;
+    padding: 10px 0;
+    /* Améliorer le scroll pour voir le haut de la dernière notification */
+    scroll-padding-bottom: 20px;
 }
 
 .notification-content::-webkit-scrollbar {
@@ -189,16 +198,25 @@
 }
 
 .notification-list {
-    padding: 10px 0;
+    padding: 10px 0 40px 0;
     min-height: 200px;
+    /* Ajouter plus d'espace en bas pour voir le haut de la dernière notification */
 }
 
-/* Scroll to top button */
-.scroll-to-top {
+/* Scroll buttons */
+.scroll-buttons {
     position: sticky;
     bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    padding: 10px 0;
+    background: linear-gradient(transparent, rgba(255, 255, 255, 0.9));
+    margin-top: 10px;
+}
+
+.scroll-to-top,
+.scroll-to-bottom {
     background: #3b82f6;
     color: white;
     border: none;
@@ -207,22 +225,21 @@
     font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
-    opacity: 0;
-    visibility: hidden;
+    opacity: 0.8;
     transition: all 0.3s ease;
-    z-index: 10;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
 .scroll-to-top.visible {
     opacity: 1;
-    visibility: visible;
 }
 
-.scroll-to-top:hover {
+.scroll-to-top:hover,
+.scroll-to-bottom:hover {
     background: #2563eb;
-    transform: translateX(-50%) translateY(-2px);
-    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    opacity: 1;
 }
 
 .notification-item {
@@ -297,6 +314,39 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
+}
+
+.mark-read-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+    padding: 4px;
+    border-radius: 4px;
+    margin-right: 4px;
+}
+
+.mark-read-btn:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.mark-read-btn.unread {
+    color: #3b82f6;
+}
+
+.mark-read-btn.unread:hover {
+    background: #eff6ff;
+}
+
+.mark-read-btn.read {
+    color: #10b981;
+}
+
+.mark-read-btn.read:hover {
+    background: #ecfdf5;
 }
 
 .delete-btn {

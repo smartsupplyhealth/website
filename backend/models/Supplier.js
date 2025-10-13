@@ -7,9 +7,6 @@ const supplierSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true },
   password: { type: String, required: true, minlength: 6 },
   phone: { type: String, required: true },
-  companyName: { type: String, required: true },
-  companyType: { type: String, enum: ['pharmaceutical', 'medical_device', 'laboratory', 'other'], required: true },
-  address: { type: String, required: true },
   isActive: { type: Boolean, default: true },
   resetPasswordToken: { type: String },
   resetPasswordExpires: { type: Date }

@@ -26,6 +26,8 @@
   "author": "SmartSupply Health Team",
   "license": "MIT",
   "dependencies": {
+    "axios": "^1.12.2",
+    "crypto": "^1.0.1",
     "docx": "^9.5.1",
     "file-saver": "^2.0.5",
     "mongodb": "^6.20.0"

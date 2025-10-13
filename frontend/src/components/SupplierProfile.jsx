@@ -13,7 +13,6 @@ const SupplierProfile = () => {
     name: '',
     email: '',
     phone: '',
-    companyName: '',
     currentPassword: '',    // <<< NOUVEAU
     password: '',
     confirmPassword: '',
@@ -37,7 +36,6 @@ const SupplierProfile = () => {
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
-        companyName: user.companyName || '',
         currentPassword: '', // <<< NOUVEAU
         password: '',
         confirmPassword: '',
@@ -54,13 +52,6 @@ const SupplierProfile = () => {
         break;
       case 'phone':
         if (!/^\d{8}$/.test(value)) error = 'Le numéro de téléphone doit contenir exactement 8 chiffres.';
-        break;
-      case 'companyName':
-        if (value.trim().length < 4) {
-          error = "Le nom de l'entreprise doit contenir au moins 4 caractères.";
-        } else if (!/^[a-zA-Z\s]+$/.test(value)) {
-          error = "Le nom de l'entreprise ne doit contenir que des lettres et des espaces.";
-        }
         break;
       case 'currentPassword': // <<< NOUVEAU
         // On ne l’exige QUE si l’utilisateur change le mot de passe
@@ -115,7 +106,7 @@ const SupplierProfile = () => {
     let hasErrors = false;
 
     // Champs texte standards (name is now disabled)
-    ['phone', 'companyName'].forEach((key) => {
+    ['phone'].forEach((key) => {
       const err = validateField(key, formData[key], formData);
       if (err) { validationErrors[key] = err; hasErrors = true; }
     });
@@ -212,7 +203,7 @@ const SupplierProfile = () => {
               </div>
 
               <div className="form-row">
-                <div className="form-group">
+                <div className="form-group full-width">
                   <label>Téléphone</label>
                   <input
                     type="text"
@@ -222,17 +213,6 @@ const SupplierProfile = () => {
                     className={`form-control ${errors.phone ? 'is-invalid' : ''}`}
                   />
                   <div className="error-text">{errors.phone}</div>
-                </div>
-                <div className="form-group">
-                  <label>Nom de l'entreprise</label>
-                  <input
-                    type="text"
-                    name="companyName"
-                    value={formData.companyName}
-                    onChange={handleChange}
-                    className={`form-control ${errors.companyName ? 'is-invalid' : ''}`}
-                  />
-                  <div className="error-text">{errors.companyName}</div>
                 </div>
               </div>
 

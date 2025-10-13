@@ -22,6 +22,10 @@ export default function ProductForm({ product, onSaved }) {
   const [categories, setCategories] = useState([]);
   const [newCategory, setNewCategory] = useState('');
   const [imageQualityErrors, setImageQualityErrors] = useState([]);
+  const [isAnalyzingImages, setIsAnalyzingImages] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   // Helpers to manage dynamic lists
   const addSpec = () => setForm(prev => ({ ...prev, technicalSpecs: [...prev.technicalSpecs, { specName: '' }] }));
@@ -179,52 +183,83 @@ export default function ProductForm({ product, onSaved }) {
   });
 
   const analyzeImageWithGemini = async (file) => {
+    console.log('🔍 Analyse d\'image avec Gemini:', file.name);
     const genAI = getGenAi();
-    if (!genAI) return { ok: false, reason: 'Clé API Gemini manquante' };
+    if (!genAI) {
+      console.log('❌ Clé API Gemini manquante');
+      return { ok: false, reason: 'Clé API Gemini manquante' };
+    }
     try {
       const modelName = resolveVisionModel();
+      console.log('🤖 Utilisation du modèle:', modelName);
       const dataUrl = await readFileAsDataURL(file);
       const base64 = String(dataUrl).split(',')[1];
       const model = genAI.getGenerativeModel({ model: modelName });
-      const prompt = `Contrôle qualité d'image POUR FICHE PRODUIT. Analyse détails: netteté (flou), résolution utile (pas seulement pixels, mais lisibilité), éclairage/contraste, artefacts de compression, recadrage approprié. Réponds STRICTEMENT JSON compact: {"ok": boolean, "reason": string, "scores": {"sharpness":0-100, "resolution":0-100, "compression":0-100}}. Rejeter si sharpness < 65 ou resolution < 65 ou compression < 50.`;
+      const prompt = `Contrôle qualité d'image POUR FICHE PRODUIT. Analyse détails: netteté (flou), résolution utile (pas seulement pixels, mais lisibilité), éclairage/contraste, artefacts de compression, recadrage approprié. Réponds STRICTEMENT JSON compact: {"ok": boolean, "reason": string, "scores": {"sharpness":0-100, "resolution":0-100, "compression":0-100}}. Rejeter si sharpness < 70 ou resolution < 70 ou compression < 60.`;
       const result = await model.generateContent([
         { text: prompt },
         { inlineData: { mimeType: file.type || 'image/jpeg', data: base64 } }
       ]);
       let text = result.response.text().trim();
+      console.log('📝 Réponse Gemini:', text);
       try {
         // Strip possible code fences and extract JSON object
         text = text.replace(/```json|```/g, '').trim();
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         const jsonText = jsonMatch ? jsonMatch[0] : text;
         const json = JSON.parse(jsonText);
-        if (!json.ok) return { ok: false, reason: json.reason || 'Qualité insuffisante' };
+        console.log('📊 Scores analysés:', json);
+        if (!json.ok) {
+          console.log('❌ Image rejetée:', json.reason);
+          return { ok: false, reason: json.reason || 'Qualité insuffisante' };
+        }
         const s = json.scores || {};
-        if ((s.sharpness ?? 100) < 65) return { ok: false, reason: 'Image jugée floue (IA)' };
-        if ((s.resolution ?? 100) < 65) return { ok: false, reason: 'Résolution jugée insuffisante (IA)' };
-        if ((s.compression ?? 100) < 50) return { ok: false, reason: 'Compression excessive (IA)' };
+        if ((s.sharpness ?? 100) < 70) {
+          console.log('❌ Image trop floue:', s.sharpness);
+          return { ok: false, reason: 'Image jugée floue (IA) - Score: ' + (s.sharpness || 0) };
+        }
+        if ((s.resolution ?? 100) < 70) {
+          console.log('❌ Résolution insuffisante:', s.resolution);
+          return { ok: false, reason: 'Résolution jugée insuffisante (IA) - Score: ' + (s.resolution || 0) };
+        }
+        if ((s.compression ?? 100) < 60) {
+          console.log('❌ Compression excessive:', s.compression);
+          return { ok: false, reason: 'Compression excessive (IA) - Score: ' + (s.compression || 0) };
+        }
+        console.log('✅ Image acceptée - Scores:', s);
         return { ok: true };
-      } catch {
-        // If parsing fails, do not block the user
-        return { ok: true };
+      } catch (parseError) {
+        console.log('❌ Erreur parsing JSON:', parseError);
+        // If parsing fails, reject the image to be safe
+        return { ok: false, reason: 'Erreur d\'analyse de l\'image' };
       }
     } catch (e) {
-      return { ok: true }; // transient errors shouldn't block uploads
+      console.log('❌ Erreur API Gemini:', e);
+      // Reject on API errors to be safe
+      return { ok: false, reason: 'Erreur de connexion à l\'IA' };
     }
   };
 
   const handleFileChange = async e => {
     const files = [...e.target.files];
     setSelectedFiles(files);
+    setIsAnalyzingImages(true);
+    setImageQualityErrors([]);
+
+    console.log('📁 Fichiers sélectionnés:', files.length);
     const errors = [];
     for (const file of files) {
+      console.log('🔍 Analyse de:', file.name);
       const result = await analyzeImageWithGemini(file);
       if (!result.ok) {
         errors.push({ name: file.name, reason: result.reason });
       }
     }
+
+    console.log('📊 Résultats d\'analyse:', errors);
     setImageQualityErrors(errors);
     setFormErrors(prev => ({ ...prev, images: errors.length ? 'Images rejetées par l\'IA.' : null }));
+    setIsAnalyzingImages(false);
   };
 
   const handleAddCategory = async () => {
@@ -240,6 +275,9 @@ export default function ProductForm({ product, onSaved }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitError('');
+    setSubmitSuccess(false);
 
     const errors = {};
     Object.keys(form).forEach(key => {
@@ -268,6 +306,7 @@ export default function ProductForm({ product, onSaved }) {
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       setTouched(Object.keys(form).reduce((acc, key) => ({ ...acc, [key]: true }), {}));
+      setIsSubmitting(false);
       return;
     }
 
@@ -290,19 +329,58 @@ export default function ProductForm({ product, onSaved }) {
           await axios.post(`http://localhost:5000/api/products/${res.data._id}/images`, formData, { headers });
         }
       }
-      onSaved && onSaved();
+
+      setSubmitSuccess(true);
+      setIsSubmitting(false);
+
+      // Attendre un peu pour montrer le succès, puis fermer
+      setTimeout(() => {
+        if (onSaved) {
+          onSaved();
+        }
+      }, 1500);
+
     } catch (err) {
       console.error('Erreur enregistrement:', err.response?.data || err);
+      setSubmitError(err.response?.data?.message || 'Erreur lors de l\'enregistrement du produit');
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="product-form-container">
       <form onSubmit={handleSubmit} className="product-form" noValidate>
+        {/* Success Message */}
+        {submitSuccess && (
+          <div className="form-success-message">
+            <div className="success-icon">✓</div>
+            <p>Produit {product ? 'modifié' : 'ajouté'} avec succès !</p>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {submitError && (
+          <div className="form-error-message">
+            <div className="error-icon">⚠</div>
+            <p>{submitError}</p>
+          </div>
+        )}
+
         {/* Submit Button at Top */}
         <div className="submit-button-container">
-          <button type="submit" className={`submit-button ${product ? 'edit' : 'create'}`} disabled={imageQualityErrors.length > 0}>
-            {product ? 'Modifier un' : 'Ajouter un'} produit
+          <button
+            type="submit"
+            className={`submit-button ${product ? 'edit' : 'create'}`}
+            disabled={imageQualityErrors.length > 0 || isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <div className="loading-spinner"></div>
+                {product ? 'Modification...' : 'Ajout...'}
+              </>
+            ) : (
+              `${product ? 'Modifier un' : 'Ajouter un'} produit`
+            )}
           </button>
         </div>
 
@@ -395,14 +473,21 @@ export default function ProductForm({ product, onSaved }) {
         <div className="form-field">
           <label className="field-label">Images du produit *</label>
           <div className="file-input-container">
-            <input type="file" multiple accept="image/*" onChange={handleFileChange} className={`file-input ${formErrors.images ? 'is-invalid' : ''}`} />
-            {selectedFiles.length > 0 && (<div className="file-count">{selectedFiles.length} fichier(s) sélectionné(s)</div>)}
+            <input type="file" multiple accept="image/*" onChange={handleFileChange} className={`file-input ${formErrors.images ? 'is-invalid' : ''}`} disabled={isAnalyzingImages} />
+            {isAnalyzingImages && (
+              <div className="file-count" style={{ background: '#3b82f6', color: 'white' }}>
+                🔍 Analyse IA en cours...
+              </div>
+            )}
+            {selectedFiles.length > 0 && !isAnalyzingImages && (
+              <div className="file-count">{selectedFiles.length} fichier(s) sélectionné(s)</div>
+            )}
           </div>
           {formErrors.images && <p className="error-text">{formErrors.images}</p>}
           {imageQualityErrors.length > 0 && (
             <ul className="error-text" style={{ marginTop: '0.5rem' }}>
               {imageQualityErrors.map((e, i) => (
-                <li key={i}>{e.name}: {e.reason}</li>
+                <li key={i}>❌ {e.name}: {e.reason}</li>
               ))}
             </ul>
           )}
@@ -410,8 +495,19 @@ export default function ProductForm({ product, onSaved }) {
 
         {/* Submit Button at Bottom */}
         <div className="submit-button-container submit-button-bottom">
-          <button type="submit" className={`submit-button ${product ? 'edit' : 'create'}`} disabled={imageQualityErrors.length > 0}>
-            {product ? 'Modifier un' : 'Ajouter un'} produit
+          <button
+            type="submit"
+            className={`submit-button ${product ? 'edit' : 'create'}`}
+            disabled={imageQualityErrors.length > 0 || isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <div className="loading-spinner"></div>
+                {product ? 'Modification...' : 'Ajout...'}
+              </>
+            ) : (
+              `${product ? 'Modifier un' : 'Ajouter un'} produit`
+            )}
           </button>
         </div>
 

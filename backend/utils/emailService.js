@@ -4,15 +4,14 @@ const smtpEmailService = require('./smtpEmailService');
 const simpleEmailService = require('./simpleEmailService');
 const workingEmailService = require('./workingEmailService');
 
-// --- CONFIGURATION DE SENDGRID ---
-// On configure la clé API une seule fois au démarrage de l'application.
-if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.startsWith('SG.')) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-  console.log("--- Service d'email configuré avec SendGrid ---");
-  console.log(`Email d'expédition par défaut: ${process.env.EMAIL_FROM || 'undefined'}`);
-  console.log(`Clé API SendGrid définie: true`);
+// --- CONFIGURATION EMAIL ---
+// Service email configuré avec SMTP Gmail uniquement
+if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
+  console.log("--- Service d'email configuré avec SMTP Gmail ---");
+  console.log(`Email d'expédition: ${process.env.SMTP_EMAIL}`);
+  console.log(`Email FROM: ${process.env.EMAIL_FROM || 'undefined'}`);
 } else {
-  console.warn("⚠️  SendGrid not configured: API key does not start with 'SG.' or is not provided");
+  console.warn("⚠️  SMTP not configured: SMTP_EMAIL or SMTP_PASSWORD not provided");
 }
 console.log("-------------------------------------------");
 

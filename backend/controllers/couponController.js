@@ -248,3 +248,47 @@ exports.getCouponStats = async (req, res) => {
         });
     }
 };
+
+// Create welcome coupon for new clients (internal function)
+exports.createWelcomeCoupon = async (clientId, clientName) => {
+    try {
+        // Generate unique coupon code
+        const couponCode = `WELCOME${clientId.toString().slice(-6).toUpperCase()}`;
+
+        // Check if coupon already exists for this client
+        const existingCoupon = await Coupon.findOne({
+            code: couponCode,
+            description: { $regex: clientName, $options: 'i' }
+        });
+
+        if (existingCoupon) {
+            console.log(`Welcome coupon already exists for client ${clientName}`);
+            return existingCoupon;
+        }
+
+        // Create welcome coupon
+        const welcomeCoupon = new Coupon({
+            code: couponCode,
+            description: `Bienvenue ${clientName} ! Réduction de 15% sur votre première commande`,
+            type: 'percentage',
+            value: 15,
+            minOrderAmount: 30,
+            maxDiscountAmount: 50,
+            usageLimit: 1,
+            usedCount: 0,
+            isActive: true,
+            validFrom: new Date(),
+            validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+            applicableProducts: [],
+            clientSpecific: clientId // Mark as client-specific
+        });
+
+        await welcomeCoupon.save();
+        console.log(`✅ Welcome coupon created for ${clientName}: ${couponCode}`);
+
+        return welcomeCoupon;
+    } catch (error) {
+        console.error('Error creating welcome coupon:', error);
+        throw error;
+    }
+};

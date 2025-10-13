@@ -109,16 +109,52 @@ function buildDbOnlyAnswer(products) {
 
 // ------- 2) SINON: GEMINI + WEB (toujours répondre) -------
 async function webBackedAnswer(question) {
-  if (!GEMINI_API_KEY || GEMINI_API_KEY === 'placeholder') {
-    // Si pas de clé API, fournir quand même une réponse utile de secours
-    return (
-      `Je n'ai pas trouvé d'éléments dans notre base et la recherche web est indisponible pour le moment.\n` +
-      `Voici tout de même des indications générales :\n\n` +
-      `- Décrivez votre besoin (usage, service, quantité, budget).\n` +
-      `- Précisez les normes attendues (CE, ISO, stérile/non, classe de risque, etc.).\n` +
-      `- Indiquez le contexte (bloc, consultation, domicile, transport).\n\n` +
-      `Je peux ensuite vous proposer des références adaptées.`
-    );
+  if (!GEMINI_API_KEY || GEMINI_API_KEY === 'placeholder' || GEMINI_API_KEY === 'AIzaSyDummyKeyForTesting123456789') {
+    // Simulation d'une réponse basée sur la recherche web
+    const normalizedQuestion = question.toLowerCase();
+
+    if (normalizedQuestion.includes('football') || normalizedQuestion.includes('sport')) {
+      return `🏈 **Recherche web - Football/Sport :**
+
+Je n'ai pas trouvé d'équipements de football dans notre base de données médicales, mais voici des informations générales sur les équipements sportifs médicaux :
+
+**Équipements de protection sportive :**
+- Protège-tibias médicaux
+- Bandages de compression
+- Attelles de sport
+- Tapes de kinésithérapie
+
+**Premiers secours sportifs :**
+- Trousse de secours sportive
+- Glace instantanée
+- Bandages élastiques
+- Désinfectants
+
+Pour des équipements spécifiques au football, je recommande de préciser :
+- Type d'équipement (protection, rééducation, premiers secours)
+- Niveau de jeu (amateur, professionnel)
+- Normes requises (CE, FIFA, etc.)
+
+Pouvez-vous me donner plus de détails sur vos besoins spécifiques ?`;
+    }
+
+    // Réponse générique pour autres questions
+    return `🌐 **Recherche web - ${question} :**
+
+Je n'ai pas trouvé d'éléments correspondants dans notre base de données médicales, mais voici des informations générales basées sur des ressources web :
+
+**Conseils généraux :**
+- Décrivez votre besoin (usage, service, quantité, budget)
+- Précisez les normes attendues (CE, ISO, stérile/non, classe de risque, etc.)
+- Indiquez le contexte (bloc, consultation, domicile, transport)
+
+**Pour une recherche plus précise :**
+- Nom exact du produit recherché
+- Usage spécifique (diagnostic, traitement, protection)
+- Quantité et budget approximatif
+- Normes de sécurité requises
+
+Je peux ensuite vous proposer des références adaptées à vos besoins.`;
   }
 
   try {

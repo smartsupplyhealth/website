@@ -275,6 +275,21 @@ exports.updateOrderAfterPayment = async (req, res) => {
       await order.save();
       console.log(`[Backend] Order updated successfully`);
 
+      // Auto-order logic is handled by the cron job (every 5 minutes)
+      // The cron job will:
+      // 1. Decrease client stock by daily consumption
+      // 2. Check and trigger auto-orders for clients with auto-order enabled
+      console.log(`[Backend] Auto-order will be checked by cron job for order ${order.orderNumber}`);
+
+      // Notify suppliers about the new order
+      try {
+        const { notifySuppliersNewOrder } = require('../services/notificationService');
+        await notifySuppliersNewOrder(order._id);
+        console.log(`[Backend] Supplier notifications sent for order ${order.orderNumber}`);
+      } catch (notificationError) {
+        console.error('[Backend] Error sending supplier notifications:', notificationError);
+      }
+
       res.json({ message: 'Payment successful and order updated', order });
     } else {
       console.log(`[Backend] Payment not successful, status: ${paymentIntent.status}`);
@@ -818,6 +833,15 @@ exports.processCouponPayment = async (req, res) => {
     }
 
     await order.save();
+
+    // Notify suppliers about the new order
+    try {
+      const { notifySuppliersNewOrder } = require('../services/notificationService');
+      await notifySuppliersNewOrder(order._id);
+      console.log(`[Backend] Supplier notifications sent for coupon order ${order.orderNumber}`);
+    } catch (notificationError) {
+      console.error('[Backend] Error sending supplier notifications:', notificationError);
+    }
 
     const message = finalAmount <= 0
       ? 'Payment processed successfully with coupon - Order fully paid!'

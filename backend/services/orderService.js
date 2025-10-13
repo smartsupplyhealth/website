@@ -1,38 +1,35 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 
-const generateOrderNumber = async () => {
-  // Find the highest existing order number
-  const lastOrder = await Order.findOne({}, {}, { sort: { orderNumber: -1 } });
-
-  if (!lastOrder || !lastOrder.orderNumber) {
-    return 'CMD-000001';
-  }
-
-  // Extract the number from the last order number
-  const match = lastOrder.orderNumber.match(/CMD-(\d+)/);
-  if (match) {
-    const lastNumber = parseInt(match[1]);
-    return `CMD-${String(lastNumber + 1).padStart(6, '0')}`;
-  }
-
-  // Fallback if no valid order number found
-  return 'CMD-000001';
+/**
+ * Génère un numéro de commande unique et robuste.
+ * - Ne dépend plus de la base vide (évite les collisions après redémarrage du conteneur)
+ * - Combine timestamp + nombre aléatoire pour garantir l’unicité
+ */
+const generateOrderNumber = () => {
+  const timestamp = Date.now().toString().slice(-6); // 6 derniers chiffres du timestamp
+  const randomPart = Math.floor(100 + Math.random() * 900); // 3 chiffres aléatoires
+  return `CMD-${timestamp}${randomPart}`;
 };
 
+/**
+ * Crée une nouvelle commande pour un client.
+ * @param {Object} orderData - Données de commande (clientId, produits, etc.)
+ */
 const createOrder = async (orderData) => {
   const { clientId, products, deliveryAddress, notes, totalAmount, paymentMethod } = orderData;
 
-  // Validate product stock
+  // Vérifier le stock disponible pour chaque produit
   for (const item of products) {
     const productDoc = await Product.findById(item.product);
     if (!productDoc || productDoc.stock < item.quantity) {
-      throw new Error(`Product ${productDoc?.name || item.product} is out of stock or does not exist.`);
+      throw new Error(`Le produit ${productDoc?.name || item.product} est en rupture de stock ou n’existe pas.`);
     }
   }
 
+  // Créer la commande avec un numéro unique
   const order = new Order({
-    orderNumber: await generateOrderNumber(),
+    orderNumber: generateOrderNumber(),
     client: clientId,
     items: products.map(p => ({
       product: p.product,
@@ -43,21 +40,22 @@ const createOrder = async (orderData) => {
     totalAmount,
     deliveryAddress,
     notes,
-    // status will use the default 'pending' from the model
+    mode: 'manuelle', // Commande manuelle par défaut
+    status: 'pending',
     paymentStatus: 'Pending',
-    // Store the intended payment method
     paymentDetails: paymentMethod ? { method: paymentMethod } : null,
   });
 
   await order.save();
 
-  // Note: Stock is NOT deducted here - it will be deducted only after payment confirmation
-  // This prevents stock from being locked for unpaid orders
-  console.log(`📦 Order ${order.orderNumber} created - stock will be deducted after payment confirmation`);
+  console.log(`📦 Nouvelle commande ${order.orderNumber} créée avec succès`);
 
   return order;
 };
 
+/**
+ * Récupère les commandes selon un filtre et des options de pagination
+ */
 const getOrders = async (filter, options) => {
   const orders = await Order.paginate(filter, options);
   return orders;

@@ -524,3 +524,102 @@
     max-width: 250px;
   }
 }
+
+/* Success and Error Messages */
+.form-success-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  padding: 16px;
+  border-radius: 12px;
+  border-left: 4px solid #10b981;
+  margin-bottom: 20px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.form-error-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  padding: 16px;
+  border-radius: 12px;
+  border-left: 4px solid #ef4444;
+  margin-bottom: 20px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.success-icon {
+  background: #10b981;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.error-icon {
+  background: #ef4444;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.form-success-message p,
+.form-error-message p {
+  margin: 0;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.form-success-message p {
+  color: #065f46;
+}
+
+.form-error-message p {
+  color: #991b1b;
+}
+
+/* Loading spinner for buttons */
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Disabled state for buttons */
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.submit-button:disabled:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}

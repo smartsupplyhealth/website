@@ -41,11 +41,23 @@ const UserProfileModal = ({ isOpen, onClose, userType = 'client' }) => {
 
     const formatDate = (dateString) => {
         if (!dateString) return 'Non spécifié';
-        return new Date(dateString).toLocaleDateString('fr-FR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
+
+        try {
+            const date = new Date(dateString);
+            // Vérifier si la date est valide
+            if (isNaN(date.getTime())) {
+                return 'Date invalide';
+            }
+
+            return date.toLocaleDateString('fr-FR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        } catch (error) {
+            console.error('Error formatting date:', error);
+            return 'Date invalide';
+        }
     };
 
     return (
@@ -99,7 +111,7 @@ const UserProfileModal = ({ isOpen, onClose, userType = 'client' }) => {
                                 {userType === 'client' ? (
                                     <>
                                         <div className="user-profile-info-item">
-                                            <label>Nom de la clinique</label>
+                                            <label>Nom d'établissement</label>
                                             <p>{profileData.clinicName || 'Non spécifié'}</p>
                                         </div>
                                         <div className="user-profile-info-item">
@@ -111,22 +123,7 @@ const UserProfileModal = ({ isOpen, onClose, userType = 'client' }) => {
                                             <p>{profileData.address || 'Non spécifiée'}</p>
                                         </div>
                                     </>
-                                ) : (
-                                    <>
-                                        <div className="user-profile-info-item">
-                                            <label>Nom de l'entreprise</label>
-                                            <p>{profileData.companyName || 'Non spécifié'}</p>
-                                        </div>
-                                        <div className="user-profile-info-item">
-                                            <label>Type d'entreprise</label>
-                                            <p>{profileData.companyType || 'Non spécifié'}</p>
-                                        </div>
-                                        <div className="user-profile-info-item">
-                                            <label>Adresse</label>
-                                            <p>{profileData.address || 'Non spécifiée'}</p>
-                                        </div>
-                                    </>
-                                )}
+                                ) : null}
 
                                 <div className="user-profile-info-item">
                                     <label>Membre depuis</label>
@@ -163,6 +160,10 @@ const UserProfileModal = ({ isOpen, onClose, userType = 'client' }) => {
 };
 
 export default UserProfileModal;
+
+
+
+
 
 
 

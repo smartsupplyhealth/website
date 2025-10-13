@@ -23,10 +23,30 @@ class StatisticsController {
     try {
       const { period = '12months' } = req.query;
       const revenueData = await statisticsService.getRevenueChart(period);
-      
+
       res.status(200).json({
         success: true,
         data: revenueData
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  // ===== SALES FORECAST ENDPOINTS =====
+  async getSalesForecast(req, res) {
+    try {
+      const { period = 'weeks' } = req.query; // 'weeks', 'months', 'years'
+      const supplierId = req.user.id;
+
+      const forecastData = await statisticsService.getSalesForecast(supplierId, period);
+
+      res.status(200).json({
+        success: true,
+        data: forecastData
       });
     } catch (error) {
       res.status(500).json({
@@ -71,7 +91,7 @@ class StatisticsController {
     try {
       const { period = '12months' } = req.query;
       const ordersData = await statisticsService.getOrdersChart(period);
-      
+
       res.status(200).json({
         success: true,
         data: ordersData
@@ -104,7 +124,7 @@ class StatisticsController {
     try {
       const { limit = 10 } = req.query;
       const topProducts = await statisticsService.getTopSellingProducts(parseInt(limit));
-      
+
       res.status(200).json({
         success: true,
         data: topProducts
@@ -136,7 +156,7 @@ class StatisticsController {
     try {
       const { threshold = 10 } = req.query;
       const lowStockProducts = await statisticsService.getLowStockProducts(parseInt(threshold));
-      
+
       res.status(200).json({
         success: true,
         data: lowStockProducts
@@ -154,7 +174,7 @@ class StatisticsController {
     try {
       const { period = '12months' } = req.query;
       const clientData = await statisticsService.getClientRegistrationChart(period);
-      
+
       res.status(200).json({
         success: true,
         data: clientData
@@ -171,7 +191,7 @@ class StatisticsController {
     try {
       const { limit = 10 } = req.query;
       const topClients = await statisticsService.getTopClientsbyOrders(parseInt(limit));
-      
+
       res.status(200).json({
         success: true,
         data: topClients
@@ -220,7 +240,7 @@ class StatisticsController {
     try {
       const { period = '30days' } = req.query;
       const summary = await statisticsService.getAnalyticsSummary(period);
-      
+
       res.status(200).json({
         success: true,
         data: summary
@@ -238,7 +258,7 @@ class StatisticsController {
     try {
       const { format = 'json', period = '30days' } = req.query;
       const summary = await statisticsService.getAnalyticsSummary(period);
-      
+
       if (format === 'csv') {
         // Convert to CSV format (basic implementation)
         const csv = this.convertToCSV(summary);
@@ -270,7 +290,7 @@ class StatisticsController {
     csv += `Total Orders,${overview.totalOrders}\n`;
     csv += `Total Revenue,${overview.totalRevenue}\n`;
     csv += `Monthly Revenue,${overview.monthlyRevenue}\n`;
-    
+
     return csv;
   }
 }

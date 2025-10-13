@@ -29,7 +29,7 @@ const SupplierNavbar = () => {
   ];
 
   const userName = user?.name || "Utilisateur";
-  const company = user?.companyName || "Société";
+  const company = user?.companyName || "Fournisseur";
   const initials = getInitials(userName);
 
   return (
@@ -85,7 +85,7 @@ const SupplierNavbar = () => {
                 {initials}
               </button>
               <div className="navbar-user-info">
-                <p className="navbar-user-name">{initials}</p>
+                <p className="navbar-user-name"></p>
                 <p className="navbar-user-company" title={company}>{company}</p>
               </div>
               <button onClick={logout} className="navbar-logout-btn" aria-label="Se déconnecter">
@@ -145,7 +145,7 @@ const SupplierNavbar = () => {
                   {initials}
                 </button>
                 <div className="navbar-mobile-user-info">
-                  <p className="navbar-user-name">{initials}</p>
+                  <p className="navbar-user-name"></p>
                   <p className="navbar-user-company" title={company}>{company}</p>
                 </div>
               </div>

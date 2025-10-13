@@ -19,10 +19,10 @@ const ForgotPassword = () => {
     setSuccess('');
     try {
       await api.post('/auth/forgot-password', { email, role });
-      setSuccess('A verification code has been sent to your email.');
+      setSuccess('Un code de vérification a été envoyé à votre email.');
       setStep(2);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to send verification code.');
+      setError(err.response?.data?.message || 'Échec de l\'envoi du code de vérification.');
     }
   };
 
@@ -32,22 +32,22 @@ const ForgotPassword = () => {
     setSuccess('');
     try {
       await api.post('/auth/reset-password', { email, role, token, password });
-      setSuccess('Password has been reset successfully. Redirecting to login...');
+      setSuccess('Le mot de passe a été réinitialisé avec succès. Redirection vers la connexion...');
       setTimeout(() => {
         navigate('/login');
       }, 2000); // Redirect after 2 seconds
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to reset password.');
+      setError(err.response?.data?.message || 'Échec de la réinitialisation du mot de passe.');
     }
   };
 
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h2 className="auth-title">Reset Password</h2>
+        <h2 className="auth-title">Changer mot de passe</h2>
         {error && <div className="auth-error">{error}</div>}
         {success && <div className="auth-success">{success}</div>}
-        
+
         {step === 1 ? (
           <form onSubmit={handleRequestCode}>
             <div className="form-group">
@@ -55,29 +55,29 @@ const ForgotPassword = () => {
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="form-control" />
             </div>
             <div className="form-group">
-              <label>Role</label>
+              <label>Rôle</label>
               <select value={role} onChange={(e) => setRole(e.target.value)} className="form-control">
                 <option value="client">Client</option>
-                <option value="supplier">Supplier</option>
+                <option value="supplier">Fournisseur</option>
               </select>
             </div>
-            <button type="submit" className="auth-button">Send Verification Code</button>
+            <button type="submit" className="auth-button">Envoyer code de vérification</button>
           </form>
         ) : (
           <form onSubmit={handleResetPassword}>
             <div className="form-group">
-              <label>Verification Code</label>
+              <label>Code de vérification</label>
               <input type="text" value={token} onChange={(e) => setToken(e.target.value)} required className="form-control" />
             </div>
             <div className="form-group">
-              <label>New Password</label>
+              <label>Nouveau mot de passe</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="form-control" />
             </div>
-            <button type="submit" className="auth-button">Reset Password</button>
+            <button type="submit" className="auth-button">Changer mot de passe</button>
           </form>
         )}
         <div className="auth-footer">
-          <Link to="/login">Back to Login</Link>
+          <Link to="/login">Retour à la connexion</Link>
         </div>
       </div>
     </div>

@@ -16,6 +16,7 @@ export const useNotifications = () => {
       fetchNotifications: () => { },
       fetchUnreadCount: () => { },
       markAsRead: () => { },
+      markAsUnread: () => { },
       markAllAsRead: () => { },
       deleteNotification: () => { },
       toggleNotifications: () => { },
@@ -121,12 +122,45 @@ export const NotificationProvider = ({ children }) => {
     }
   };
 
+  // Mark notification as unread
+  const markAsUnread = async (notificationId) => {
+    if (!token) {
+      console.log('No token available for marking notification as unread');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/api/notifications/${notificationId}/unread`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        setNotifications(prev =>
+          prev.map(notif =>
+            notif._id === notificationId
+              ? { ...notif, isRead: false }
+              : notif
+          )
+        );
+        setUnreadCount(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Error marking notification as unread:', error);
+    }
+  };
+
   // Mark all notifications as read
   const markAllAsRead = async () => {
     if (!token) {
       console.log('No token available for marking all notifications as read');
       return;
     }
+
+    console.log('Marking all notifications as read...');
 
     try {
       const response = await fetch(`${API_URL}/api/notifications/mark-all-read`, {
@@ -137,11 +171,20 @@ export const NotificationProvider = ({ children }) => {
         }
       });
 
+      console.log('Mark all read response:', response.status, response.ok);
+
       if (response.ok) {
-        setNotifications(prev =>
-          prev.map(notif => ({ ...notif, isRead: true }))
-        );
+        console.log('Updating local state - marking all as read');
+        setNotifications(prev => {
+          const updated = prev.map(notif => ({ ...notif, isRead: true }));
+          console.log('Updated notifications:', updated.length, 'notifications marked as read');
+          return updated;
+        });
         setUnreadCount(0);
+        console.log('All notifications marked as read successfully');
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to mark all as read:', errorData);
       }
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
@@ -337,6 +380,7 @@ export const NotificationProvider = ({ children }) => {
     fetchNotifications,
     fetchUnreadCount,
     markAsRead,
+    markAsUnread,
     markAllAsRead,
     deleteNotification,
     toggleNotifications,

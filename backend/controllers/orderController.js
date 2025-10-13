@@ -19,6 +19,7 @@ exports.createOrder = async (req, res) => {
       totalAmount,
       paymentMethod, // Include the intended payment method
     };
+    const { page = 1, limit = req.query.limit || 1000 } = req.query;
     const order = await orderService.createOrder(orderData);
     const client = await Client.findById(req.user.id);
     if (client && client.email) {
@@ -123,44 +124,75 @@ exports.createOrder = async (req, res) => {
 };
 
 // Get orders (for admin/supplier)
+// Get orders (admin/supplier)
 exports.getOrders = async (req, res) => {
   try {
-    const { status, page = 1, limit = 10 } = req.query;
-    let filter = {};
-    if (status) {
-      filter.status = status;
-    }
+    const page = parseInt(req.query.page, 10) || 1;
+    const rawLimit = parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(rawLimit) ? Math.min(rawLimit, 5000) : 1000;
+
+    const filter = {};
+    if (req.query.status) filter.status = req.query.status;
+
     const options = {
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page,
+      limit,
       sort: { createdAt: -1 },
       populate: [
         { path: 'items.product', select: 'name' },
         { path: 'client', select: 'name email clinicName' }
       ]
     };
+
     const orders = await orderService.getOrders(filter, options);
     res.json({
-      success: true,
-      data: orders.docs,
-      pagination: {
-        totalItems: orders.totalDocs,
-        totalPages: orders.totalPages,
-        currentPage: orders.page,
-        hasNext: orders.hasNextPage,
-        hasPrev: orders.hasPrevPage,
+      success: true, data: orders.docs, pagination: {
+        totalItems: orders.totalDocs, totalPages: orders.totalPages,
+        currentPage: orders.page, hasNext: orders.hasNextPage, hasPrev: orders.hasPrevPage
       }
     });
-  } catch (error) {
-    console.error('Error fetching orders:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
+  } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
 };
+
+// Get orders for current client
+exports.getMyOrders = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const rawLimit = parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(rawLimit) ? Math.min(rawLimit, 5000) : 1000;
+
+    const filter = { client: req.user.id };
+    if (req.query.status) filter.status = req.query.status;
+    if (req.query.paymentStatus) filter.paymentStatus = req.query.paymentStatus;
+
+    const options = {
+      page,
+      limit,
+      sort: { createdAt: -1 },
+      populate: [
+        { path: 'items.product', select: 'name' },
+        { path: 'client', select: 'name email clinicName' }
+      ]
+    };
+
+    const orders = await orderService.getOrders(filter, options);
+    res.json({
+      success: true, data: orders.docs, pagination: {
+        totalItems: orders.totalDocs, totalPages: orders.totalPages,
+        currentPage: orders.page, hasNext: orders.hasNextPage, hasPrev: orders.hasPrevPage
+      }
+    });
+  } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
+};
+
 
 // Get orders for the currently logged-in client
 exports.getMyOrders = async (req, res) => {
   try {
-    const { status, paymentStatus, page = 1, limit = 10 } = req.query;
+    const { status, paymentStatus } = req.query;
+    const page = parseInt(req.query.page, 10) || 1;
+    const rawLimit = parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(rawLimit) ? Math.min(rawLimit, 5000) : 1000;
     let filter = { client: req.user.id }; // Automatically filter by the logged-in client's ID
     if (status) {
       filter.status = status;
@@ -178,6 +210,16 @@ exports.getMyOrders = async (req, res) => {
       ]
     };
     const orders = await orderService.getOrders(filter, options);
+
+    // Debug: Log order details
+    console.log(`\n=== DEBUG: Orders for client ${req.user.id} ===`);
+    console.log(`Filter used:`, JSON.stringify(filter, null, 2));
+    console.log(`Total orders found: ${orders.docs.length}`);
+    orders.docs.forEach((order, index) => {
+      console.log(`${index + 1}. Order ${order.orderNumber}: ${order.status} (${order.paymentStatus}) - Client: ${order.client} - Created: ${order.createdAt}`);
+    });
+    console.log('=== END DEBUG ===\n');
+
     res.json({
       success: true,
       data: orders.docs,
@@ -207,6 +249,12 @@ exports.getOrderById = async (req, res) => {
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
+
+    // Security check: ensure the order belongs to the logged-in client
+    if (order.client._id.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied. This order does not belong to you.' });
+    }
+
     res.json({ success: true, order });
   } catch (error) {
     console.error('Error fetching order by ID:', error);
@@ -259,6 +307,15 @@ exports.updateOrderStatus = async (req, res) => {
     }
 
     await order.save();
+
+    // Send notification to client about status change
+    try {
+      const { notifyOrderStatusChange } = require('../services/notificationService');
+      await notifyOrderStatusChange(order._id, status);
+      console.log(`[Backend] Status change notification sent for order ${order.orderNumber}`);
+    } catch (notificationError) {
+      console.error('[Backend] Error sending status change notification:', notificationError);
+    }
 
     // Generate refund coupon if order is cancelled and was paid
     let couponCode = null;
@@ -647,6 +704,15 @@ exports.cancelOrder = async (req, res) => {
       order.notes += `\nRefund coupon: ${couponCode}`;
     }
     await order.save();
+
+    // Send notification to client about cancellation
+    try {
+      const { notifyOrderStatusChange } = require('../services/notificationService');
+      await notifyOrderStatusChange(order._id, 'cancelled');
+      console.log(`[Backend] Cancellation notification sent for order ${order.orderNumber}`);
+    } catch (notificationError) {
+      console.error('[Backend] Error sending cancellation notification:', notificationError);
+    }
 
     // Send email with coupon code
     if (order.client.email) {

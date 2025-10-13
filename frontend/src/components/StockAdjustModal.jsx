@@ -3,24 +3,41 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import '../style/StockAdjustModal.css';
 
-export default function StockAdjustModal({ product, onClose }) {
+export default function StockAdjustModal({ product, onClose, onStockUpdated }) {
   const [setValue, setSetValue] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   if (!product) return null;
 
   const submit = async () => {
     try {
       if (setValue === null || setValue === '') {
-        alert('Veuillez entrer une valeur');
+        setError('Veuillez entrer une valeur');
         return;
       }
+
+      setIsLoading(true);
+      setError('');
+
       const payload = { set: Number(setValue) };
       await axios.patch(`http://localhost:5000/api/products/${product._id}/stock`, payload);
-      alert('Stock mis à jour');
-      onClose();
+
+      setSuccess(true);
+
+      // Attendre un peu pour montrer le succès, puis fermer
+      setTimeout(() => {
+        if (onStockUpdated) {
+          onStockUpdated();
+        }
+        onClose();
+      }, 1500);
+
     } catch (err) {
       console.error(err);
-      alert('Erreur mise à jour stock');
+      setError('Erreur lors de la mise à jour du stock');
+      setIsLoading(false);
     }
   };
 
@@ -29,7 +46,7 @@ export default function StockAdjustModal({ product, onClose }) {
       <div className="modal-content">
         <div className="modal-header">
           <h3 className="modal-title">Ajuster stock</h3>
-          <button onClick={onClose} className="modal-close">×</button>
+          <button onClick={onClose} className="modal-close" disabled={isLoading}>×</button>
         </div>
 
         <div className="current-stock">
@@ -40,25 +57,57 @@ export default function StockAdjustModal({ product, onClose }) {
           </p>
         </div>
 
-        <div className="form-group">
-          <label className="form-label">Définir une valeur absolue</label>
-          <input
-            type="number"
-            placeholder="ex: 200"
-            value={setValue ?? ''}
-            onChange={e => setSetValue(e.target.value)}
-            className="form-input"
-          />
-        </div>
+        {success ? (
+          <div className="success-message">
+            <div className="success-icon">✓</div>
+            <p>Stock mis à jour avec succès !</p>
+          </div>
+        ) : (
+          <>
+            <div className="form-group">
+              <label className="form-label">Définir une valeur absolue</label>
+              <input
+                type="number"
+                placeholder="ex: 200"
+                value={setValue ?? ''}
+                onChange={e => setSetValue(e.target.value)}
+                className="form-input"
+                disabled={isLoading}
+              />
+            </div>
 
-        <div className="modal-actions">
-          <button onClick={submit} className="modal-button primary">
-            Valider
-          </button>
-          <button onClick={onClose} className="modal-button secondary">
-            Annuler
-          </button>
-        </div>
+            {error && (
+              <div className="error-message">
+                <div className="error-icon">⚠</div>
+                <p>{error}</p>
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button
+                onClick={submit}
+                className="modal-button primary"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <div className="loading-spinner"></div>
+                    Mise à jour...
+                  </>
+                ) : (
+                  'Valider'
+                )}
+              </button>
+              <button
+                onClick={onClose}
+                className="modal-button secondary"
+                disabled={isLoading}
+              >
+                Annuler
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

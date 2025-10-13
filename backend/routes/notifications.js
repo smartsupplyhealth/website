@@ -100,6 +100,38 @@ router.patch('/:notificationId/read', auth, async (req, res) => {
     }
 });
 
+// Mark notification as unread
+router.patch('/:notificationId/unread', auth, async (req, res) => {
+    try {
+        const { notificationId } = req.params;
+        const userId = req.user.id;
+
+        const notification = await Notification.findOneAndUpdate(
+            { _id: notificationId, user: userId },
+            { isRead: false },
+            { new: true }
+        );
+
+        if (!notification) {
+            return res.status(404).json({
+                success: false,
+                message: 'Notification not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Notification marked as unread'
+        });
+    } catch (error) {
+        console.error('Error marking notification as unread:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error'
+        });
+    }
+});
+
 // Mark all notifications as read
 router.patch('/mark-all-read', auth, async (req, res) => {
     try {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ProductList from '../components/ProductList';
-import ProductForm from '../components/ProductForm';
+import ProductEditModal from '../components/ProductEditModal';
 import SupplierNavbar from '../components/dashboard/SupplierNavbar';
 import NotificationButton from '../components/NotificationButton';
 import NotificationPanel from '../components/NotificationPanel';
@@ -46,61 +46,11 @@ export default function ProductsPage() {
       </div>
 
       {showForm && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px',
-          }}
-          onClick={closeForm} // fermer si clic hors modal
-        >
-          <div
-            onClick={e => e.stopPropagation()} // empêcher la fermeture au clic dans la modal
-            style={{
-              background: '#fff',
-              borderRadius: 16,
-              padding: 0,
-              width: '90%',
-              maxWidth: '1000px',
-              height: '85vh',
-              maxHeight: '85vh',
-              overflowY: 'auto',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-              position: 'relative',
-            }}
-          >
-            <button
-              onClick={closeForm}
-              style={{
-                position: 'absolute',
-                top: 15,
-                right: 15,
-                border: 'none',
-                background: 'rgba(0,0,0,0.1)',
-                borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                fontSize: '20px',
-                cursor: 'pointer',
-                zIndex: 1001,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#666',
-              }}
-              aria-label="Fermer"
-            >
-              ×
-            </button>
-
-            <ProductForm product={editingProduct} onSaved={onSaved} />
-          </div>
-        </div>
+        <ProductEditModal
+          product={editingProduct}
+          onClose={closeForm}
+          onSaved={onSaved}
+        />
       )}
     </div>
   );

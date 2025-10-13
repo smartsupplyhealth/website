@@ -28,12 +28,18 @@ const createAndPayAutoOrder = async (clientId) => {
 
   for (const item of itemsToOrderRaw) {
     const product = item.product;
-    if (!product || product.stock <= 0) {
-      continue; // Skip if product doesn't exist or is out of stock
+    if (!product) {
+      continue; // Skip if product doesn't exist
     }
 
     let orderQty = item.reorderQty;
-    if (orderQty > product.stock) {
+    let stockStatus = 'available';
+
+    // Check if product is out of stock globally
+    if (product.stock <= 0) {
+      stockStatus = 'out_of_stock';
+      adjustmentNotes.push(`⚠️ ${product.name} est en rupture de stock chez le fournisseur. La commande sera en attente de réapprovisionnement.`);
+    } else if (orderQty > product.stock) {
       orderQty = product.stock; // Adjust quantity to available stock
       adjustmentNotes.push(`La quantité pour ${product.name} a été ajustée à ${orderQty} en raison du stock disponible.`);
     }
@@ -43,6 +49,7 @@ const createAndPayAutoOrder = async (clientId) => {
       quantity: orderQty,
       unitPrice: product.price,
       totalPrice: product.price * orderQty,
+      stockStatus: stockStatus, // Track stock status
     });
   }
 
@@ -57,6 +64,11 @@ const createAndPayAutoOrder = async (clientId) => {
     return { success: false, message: 'Client not found.' };
   }
 
+  // Vérifier que le client a une carte bancaire configurée pour les paiements automatiques
+  if (!client.stripeCustomerId) {
+    return { success: false, message: 'Client not configured for automatic payments. Please add a payment method first.' };
+  }
+
   const deliveryAddress = {
     street: client.address || 'N/A',
     city: 'N/A',
@@ -64,15 +76,20 @@ const createAndPayAutoOrder = async (clientId) => {
     country: 'N/A',
   };
 
+  // Check if any items are out of stock
+  const hasOutOfStockItems = orderProducts.some(item => item.stockStatus === 'out_of_stock');
+
   const order = new Order({
     orderNumber: 'CMD' + Date.now(),
     client: validClientId,
     items: orderProducts,
     totalAmount,
     deliveryAddress,
-    notes: 'Commande automatique générée par le système.',
+    notes: hasOutOfStockItems ?
+      'Commande automatique générée par le système. ⚠️ Certains produits sont en rupture de stock chez le fournisseur.' :
+      'Commande automatique générée par le système.',
     // status will use the default 'pending' from the model
-    paymentStatus: 'Pending',
+    paymentStatus: hasOutOfStockItems ? 'PendingRestock' : 'Pending',
   });
 
   await order.save();
@@ -82,21 +99,66 @@ const createAndPayAutoOrder = async (clientId) => {
     return { success: false, message: 'Failed to create order.' };
   }
 
-  // --- Stripe Payment Logic ---
+  // If there are out of stock items, don't process payment immediately
+  if (hasOutOfStockItems) {
+    console.log(`📦 Order ${order.orderNumber} created but payment deferred due to out of stock items`);
+
+    if (client.email) {
+      const productDetailsList = order.items.map(item => {
+        const inventoryItem = inventoryItems.find(invItem => invItem.product && invItem.product._id && invItem.product._id.equals(item.product));
+        const productName = inventoryItem && inventoryItem.product ? inventoryItem.product.name : 'Unknown Product';
+        const stockNote = item.stockStatus === 'out_of_stock' ? ' (En attente de réapprovisionnement)' : '';
+        return `<li>${productName} (Quantité: ${item.quantity})${stockNote}</li>`;
+      }).join('');
+
+      const emailHtml = `
+        <h1>Bonjour ${client.name},</h1>
+        <p>Votre commande automatique <strong>${order.orderNumber}</strong> a été créée avec succès.</p>
+        <p><strong>⚠️ Note importante :</strong> Certains produits sont en rupture de stock chez le fournisseur. Votre commande sera traitée dès que le stock sera réapprovisionné.</p>
+        <h3>Détails de la commande :</h3>
+        <ul>
+          ${productDetailsList}
+        </ul>
+        <p><strong>Montant total : ${order.totalAmount.toFixed(2)}€</strong></p>
+        <p><strong>Statut :</strong> En attente de réapprovisionnement</p>
+        <p>Merci de votre compréhension.</p>
+      `;
+      await sendEmail(client.email, 'Commande automatique créée - En attente de réapprovisionnement', emailHtml);
+    }
+
+    return { success: true, message: 'Automatic order created but payment deferred due to out of stock items.', order };
+  }
+
+  // --- Stripe Payment Logic (only for items in stock) ---
   try {
     if (!client || !client.stripeCustomerId) {
       throw new Error('Client is not configured for Stripe payments.');
     }
 
-    const paymentMethods = await stripe.paymentMethods.list({
+    // Vérifier qu'il y a des cartes bancaires disponibles avant de créer la commande
+    const availablePaymentMethods = await stripe.paymentMethods.list({
       customer: client.stripeCustomerId,
       type: 'card',
     });
 
-    if (paymentMethods.data.length === 0) {
-      throw new Error('No saved payment method found for this client.');
+    if (availablePaymentMethods.data.length === 0) {
+      throw new Error('No credit card found for automatic payments. Please add a payment method first.');
     }
-    const paymentMethodId = paymentMethods.data[0].id;
+
+    const paymentMethods = availablePaymentMethods;
+
+    // Trouver la carte bancaire par défaut ou la première carte disponible
+    let paymentMethodId;
+    const defaultCard = paymentMethods.data.find(pm => pm.metadata && pm.metadata.isDefault === 'true');
+
+    if (defaultCard) {
+      paymentMethodId = defaultCard.id;
+      console.log(`💳 Using default card for automatic payment: ${defaultCard.card.brand} ****${defaultCard.card.last4}`);
+    } else {
+      // Utiliser la première carte bancaire disponible
+      paymentMethodId = paymentMethods.data[0].id;
+      console.log(`💳 Using first available card for automatic payment: ${paymentMethods.data[0].card.brand} ****${paymentMethods.data[0].card.last4}`);
+    }
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(order.totalAmount * 100),
@@ -132,13 +194,14 @@ const createAndPayAutoOrder = async (clientId) => {
 
       const emailHtml = `
         <h1>Bonjour ${client.name},</h1>
-        <p>Votre commande automatique <strong>${order.orderNumber}</strong> a été créée et payée avec succès.</p>
+        <p>Votre commande automatique <strong>${order.orderNumber}</strong> a été créée et payée avec succès par carte bancaire.</p>
         ${adjustmentHtml}
         <h3>Détails de la commande :</h3>
         <ul>
           ${productDetailsList}
         </ul>
         <p><strong>Montant total : ${order.totalAmount.toFixed(2)}€</strong></p>
+        <p><strong>Méthode de paiement :</strong> Carte bancaire (paiement automatique)</p>
         <p>Merci de votre confiance.</p>
       `;
       await sendEmail(client.email, 'Confirmation de votre commande automatique', emailHtml);

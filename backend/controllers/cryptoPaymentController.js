@@ -2,6 +2,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 const Order = require('../models/Order');
 const ClientModel = require('../models/Client');
+const exchangeRateService = require('../services/exchangeRateService');
 
 // Direct Wallet Payment Configuration
 const BITCOIN_ADDRESS = process.env.BITCOIN_ADDRESS || '3LZ6CiRFgDf5ZBV5foKsSkJGb5DNewDM5K';
@@ -33,19 +34,26 @@ exports.createCryptoPayment = async (req, res) => {
 
         if (selectedCrypto === 'BTC') {
             walletAddress = BITCOIN_ADDRESS;
-            // For demo purposes, we'll use a fixed BTC amount
-            // In production, you'd get real-time exchange rates
-            cryptoAmount = (paymentAmount / 50000).toFixed(8); // Approximate BTC amount
         } else if (selectedCrypto === 'ETH') {
             walletAddress = ETHEREUM_ADDRESS;
-            // For demo purposes, we'll use a fixed ETH amount
-            cryptoAmount = (paymentAmount / 3000).toFixed(6); // Approximate ETH amount
         } else if (selectedCrypto === 'SOL') {
             walletAddress = SOLANA_ADDRESS;
-            // For demo purposes, we'll use a fixed SOL amount
-            cryptoAmount = (paymentAmount / 100).toFixed(4); // Approximate SOL amount
         } else {
             return res.status(400).json({ message: 'Unsupported cryptocurrency' });
+        }
+
+        // Obtenir le taux de change réel
+        try {
+            console.log(`🔄 Récupération du taux de change pour ${selectedCrypto}...`);
+            cryptoAmount = await exchangeRateService.convertEurToCrypto(paymentAmount, selectedCrypto);
+            console.log(`✅ Conversion: ${paymentAmount} EUR = ${cryptoAmount} ${selectedCrypto}`);
+        } catch (error) {
+            console.error('❌ Erreur lors de la conversion:', error.message);
+            // Fallback vers les taux fixes en cas d'erreur
+            const fallbackRates = { BTC: 50000, ETH: 3000, SOL: 100 };
+            const decimals = { BTC: 8, ETH: 6, SOL: 4 };
+            cryptoAmount = parseFloat((paymentAmount / fallbackRates[selectedCrypto]).toFixed(decimals[selectedCrypto]));
+            console.log(`🔄 Utilisation du taux de fallback: ${paymentAmount} EUR = ${cryptoAmount} ${selectedCrypto}`);
         }
 
         // Generate unique payment reference
@@ -167,6 +175,122 @@ exports.handleCryptoWebhook = async (req, res) => {
     } catch (error) {
         console.error('Error processing crypto webhook:', error);
         res.status(500).json({ error: 'Webhook processing failed' });
+    }
+};
+
+// Get current exchange rates
+exports.getExchangeRates = async (req, res) => {
+    try {
+        const { cryptocurrency = 'BTC', fiat = 'EUR' } = req.query;
+
+        console.log(`📊 Récupération du taux de change ${cryptocurrency}/${fiat}...`);
+        const rate = await exchangeRateService.getExchangeRate(cryptocurrency, fiat);
+
+        res.json({
+            success: true,
+            data: {
+                cryptocurrency,
+                fiat,
+                rate: rate,
+                timestamp: new Date().toISOString(),
+                source: 'real-time'
+            }
+        });
+    } catch (error) {
+        console.error('Error getting exchange rate:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching exchange rate',
+            error: error.message
+        });
+    }
+};
+
+// Convert EUR to cryptocurrency
+exports.convertEurToCrypto = async (req, res) => {
+    try {
+        const { amount, cryptocurrency = 'BTC' } = req.body;
+
+        if (!amount || amount <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Amount must be a positive number'
+            });
+        }
+
+        console.log(`🔄 Conversion de ${amount} EUR vers ${cryptocurrency}...`);
+        const cryptoAmount = await exchangeRateService.convertEurToCrypto(amount, cryptocurrency);
+        const rate = await exchangeRateService.getExchangeRate(cryptocurrency, 'EUR');
+
+        res.json({
+            success: true,
+            data: {
+                eurAmount: amount,
+                cryptoAmount: cryptoAmount,
+                cryptocurrency: cryptocurrency,
+                exchangeRate: rate,
+                timestamp: new Date().toISOString()
+            }
+        });
+    } catch (error) {
+        console.error('Error converting currency:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error converting currency',
+            error: error.message
+        });
+    }
+};
+
+// Manual confirmation for crypto payments (for testing purposes)
+exports.confirmCryptoPayment = async (req, res) => {
+    const { orderId } = req.params;
+
+    try {
+        const order = await Order.findById(orderId).populate('client');
+        if (!order) return res.status(404).json({ message: 'Order not found' });
+        if (order.client._id.toString() !== req.user.id) return res.status(403).json({ message: 'Not authorized' });
+        if (order.paymentStatus === 'Paid') return res.status(400).json({ message: 'Order is already paid' });
+
+        // Update order status
+        order.paymentStatus = 'Paid';
+        order.status = 'confirmed';
+        order.paymentDetails.status = 'confirmed';
+        order.paymentDetails.transactionId = `crypto_${Date.now()}`;
+
+        // Deduct stock only after payment confirmation
+        const Product = require('../models/Product');
+        for (const item of order.items) {
+            await Product.findByIdAndUpdate(item.product, { $inc: { stock: -item.quantity } });
+            console.log(`📦 Deducted ${item.quantity} units of product ${item.product} after crypto payment confirmation`);
+        }
+
+        await order.save();
+        console.log(`[Backend] Crypto order confirmed: ${order.orderNumber}`);
+
+        // Notify suppliers about the new order
+        try {
+            const { notifySuppliersNewOrder } = require('../services/notificationService');
+            await notifySuppliersNewOrder(order._id);
+            console.log(`[Backend] Supplier notifications sent for crypto order ${order.orderNumber}`);
+        } catch (notificationError) {
+            console.error('[Backend] Error sending supplier notifications:', notificationError);
+        }
+
+        res.json({
+            success: true,
+            message: 'Crypto payment confirmed successfully',
+            order: {
+                id: order._id,
+                orderNumber: order.orderNumber,
+                paymentStatus: order.paymentStatus,
+                status: order.status
+            }
+        });
+
+    } catch (error) {
+        console.error('Error confirming crypto payment:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 

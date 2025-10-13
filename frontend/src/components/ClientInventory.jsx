@@ -59,6 +59,16 @@ export default function ClientInventory() {
 
   const getKey = (obj) => obj?.product?._id ?? obj?._id ?? null;
 
+  const getInventoryMode = (item) => {
+    // Vérifier si l'auto-commande est activée
+    if (item.autoOrder?.enabled) {
+      return <span className="status-badge status-auto">Auto</span>;
+    }
+
+    // Sinon, c'est manuel
+    return <span className="status-badge status-manual">Manuelle</span>;
+  };
+
   // Get paginated simulation results
   const paginatedSimulRows = useMemo(() => {
     const start = (simulationPage - 1) * simulationPageSize;
